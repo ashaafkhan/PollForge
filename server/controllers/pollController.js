@@ -85,6 +85,23 @@ export async function getMyPolls(req, res, next) {
   }
 }
 
+export async function getPollById(req, res, next) {
+  try {
+    const poll = await Poll.findById(req.params.id);
+    if (!poll) {
+      return res.status(404).json({ message: "Poll not found" });
+    }
+
+    if (poll.creator.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    return res.json(poll);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 export async function getPollBySlug(req, res, next) {
   try {
     const poll = await Poll.findOne({ slug: req.params.slug }).select(

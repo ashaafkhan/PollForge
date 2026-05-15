@@ -9,6 +9,8 @@ export default function Dashboard() {
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [actionLoading, setActionLoading] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -35,6 +37,19 @@ export default function Dashboard() {
       active = false;
     };
   }, []);
+
+  const activatePoll = async (pollId) => {
+    setActionError("");
+    setActionLoading(pollId);
+    try {
+      const response = await api.patch(`/api/polls/${pollId}/activate`);
+      setPolls((prev) => prev.map((poll) => (poll._id === pollId ? response.data : poll)));
+    } catch (err) {
+      setActionError("Failed to activate poll");
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
@@ -74,6 +89,7 @@ export default function Dashboard() {
           )}
           {loading && <p className="mt-4 text-sm text-slate-400">Loading polls...</p>}
           {error && <p className="mt-4 text-sm text-rose-400">{error}</p>}
+          {actionError && <p className="mt-4 text-sm text-rose-400">{actionError}</p>}
           {!loading && !error && polls.length === 0 && (
             <p className="mt-4 text-sm text-slate-400">
               No polls yet. Create your first draft.
@@ -89,7 +105,25 @@ export default function Dashboard() {
                   <p className="text-sm font-semibold text-slate-100">{poll.title}</p>
                   <p className="text-xs text-slate-500">/{poll.slug}</p>
                 </div>
-                <div className="text-xs uppercase text-slate-400">{poll.status}</div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs uppercase text-slate-400">{poll.status}</span>
+                  <Link
+                    to={`/polls/${poll._id}/edit`}
+                    className="text-xs uppercase text-slate-300"
+                  >
+                    Edit
+                  </Link>
+                  {poll.status === "draft" && (
+                    <button
+                      type="button"
+                      onClick={() => activatePoll(poll._id)}
+                      disabled={actionLoading === poll._id}
+                      className="text-xs uppercase text-[#22D3EE]"
+                    >
+                      {actionLoading === poll._id ? "Activating..." : "Activate"}
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

@@ -4,6 +4,7 @@ import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import PollBuilder from "./pages/PollBuilder.jsx";
+import PollEdit from "./pages/PollEdit.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import PublicOnlyRoute from "./components/PublicOnlyRoute.jsx";
 
@@ -40,6 +41,14 @@ function App() {
         element={
           <ProtectedRoute>
             <PollBuilder />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/polls/:id/edit"
+        element={
+          <ProtectedRoute>
+            <PollEdit />
           </ProtectedRoute>
         }
       />
