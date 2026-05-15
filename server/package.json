@@ -20,6 +20,8 @@
     "mongoose": "^8.5.2",
     "morgan": "^1.10.0",
     "nanoid": "^5.0.7",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "pollforge": "file:..",
     "qrcode": "^1.5.4",
     "socket.io": "^4.7.5"

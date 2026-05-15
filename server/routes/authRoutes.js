@@ -5,9 +5,11 @@ import {
   logout,
   me,
   refresh,
-  register
+  register,
+  googleCallback
 } from "../controllers/authController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import passport from "passport";
 
 const router = Router();
 
@@ -30,5 +32,9 @@ router.post(
 router.post("/refresh", refresh);
 router.post("/logout", logout);
 router.get("/me", authMiddleware, me);
+
+// Google OAuth routes
+router.get("/google", passport.authenticate("google", { scope: ["profile", "email"], session: false }));
+router.get("/google/callback", passport.authenticate("google", { failureRedirect: "/login?error=google_auth_failed", session: false }), googleCallback);
 
 export default router;

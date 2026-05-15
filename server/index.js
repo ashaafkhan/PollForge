@@ -14,11 +14,15 @@ import pollRoutes from "./routes/pollRoutes.js";
 import responseRoutes from "./routes/responseRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import passport from "./config/passport.js";
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+// Trust proxy for Render/Vercel
+app.set("trust proxy", 1);
 
 const io = new Server(server, {
   cors: {
@@ -36,6 +40,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+app.use(passport.initialize());
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
