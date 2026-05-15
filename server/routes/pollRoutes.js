@@ -8,9 +8,11 @@ import {
   getPollById,
   getMyPolls,
   getPollBySlug,
-  updatePoll
+  updatePoll,
+  publishPoll
 } from "../controllers/pollController.js";
-import { authMiddleware } from "../middleware/authMiddleware.js";
+import { getPollQR } from "../controllers/qrController.js";
+import { authMiddleware, optionalAuthMiddleware } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
@@ -23,10 +25,11 @@ router.post(
 
 router.get("/my", authMiddleware, getMyPolls);
 router.get("/id/:id", authMiddleware, getPollById);
-router.get("/:id/analytics", authMiddleware, getAnalytics);
+router.get("/:id/analytics", optionalAuthMiddleware, getAnalytics);
 router.get("/:slug", getPollBySlug);
 router.put("/:id", authMiddleware, updatePoll);
 router.delete("/:id", authMiddleware, deletePoll);
-router.patch("/:id/activate", authMiddleware, activatePoll);
+router.patch("/:id/publish", authMiddleware, publishPoll);
+router.get("/:id/qr", getPollQR);
 
 export default router;

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import api from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import ResultsDisplay from "../components/ResultsDisplay.jsx";
 
 export default function PollPublic() {
   const { slug } = useParams();
@@ -134,6 +135,27 @@ export default function PollPublic() {
 
   if (!poll) {
     return null;
+  }
+
+  if (poll.status === 'published') {
+    return (
+      <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
+        <div className="mx-auto max-w-3xl px-6 py-10">
+          <div className="mb-6 flex flex-col items-start gap-2">
+            <span className="rounded-full bg-[#10B981]/20 px-3 py-1 text-xs uppercase text-[#10B981]">
+              Results Published
+            </span>
+            <h1 className="text-3xl font-bold text-slate-50">{poll.title}</h1>
+            {poll.description && <p className="mt-2 text-sm text-slate-400">{poll.description}</p>}
+          </div>
+          <ResultsDisplay 
+            pollId={poll._id} 
+            pollTitle={poll.title} 
+            aiInsights={poll.aiInsights} 
+          />
+        </div>
+      </div>
+    );
   }
 
   if (poll.requireAuth && !user) {

@@ -12,6 +12,7 @@ import { connectDb } from "./services/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import pollRoutes from "./routes/pollRoutes.js";
 import responseRoutes from "./routes/responseRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 dotenv.config();
@@ -51,6 +52,7 @@ app.get("/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/polls", pollRoutes);
 app.use("/api/responses", responseRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.use(errorHandler);
 

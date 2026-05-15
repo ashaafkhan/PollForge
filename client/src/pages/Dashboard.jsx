@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import api from "../lib/api.js";
+import NotificationBell from "../components/NotificationBell.jsx";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -63,7 +64,8 @@ export default function Dashboard() {
               Welcome back, {user?.name || "Creator"}
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            <NotificationBell />
             <Link
               to="/polls/new"
               className="rounded-full border border-[#22D3EE] px-4 py-2 text-sm text-[#22D3EE]"
@@ -106,16 +108,18 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-500">/{poll.slug}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs uppercase text-slate-400">{poll.status}</span>
+                  <span className={`text-xs uppercase ${poll.status === 'published' ? 'text-[#10B981]' : 'text-slate-400'}`}>
+                    {poll.status}
+                  </span>
                   <Link
                     to={`/polls/${poll._id}/edit`}
-                    className="text-xs uppercase text-slate-300"
+                    className="text-xs uppercase text-slate-300 hover:text-white"
                   >
                     Edit
                   </Link>
                   <Link
                     to={`/polls/${poll._id}/analytics`}
-                    className="text-xs uppercase text-slate-300"
+                    className="text-xs uppercase text-[#22D3EE] hover:underline"
                   >
                     Analytics
                   </Link>
@@ -124,22 +128,45 @@ export default function Dashboard() {
                       type="button"
                       onClick={() => activatePoll(poll._id)}
                       disabled={actionLoading === poll._id}
-                      className="text-xs uppercase text-[#22D3EE]"
+                      className="text-xs uppercase text-[#22D3EE] hover:underline"
                     >
                       {actionLoading === poll._id ? "Activating..." : "Activate"}
                     </button>
+                  )}
+                  {poll.status === "published" && (
+                    <Link
+                      to={`/p/${poll.slug}`}
+                      className="text-xs uppercase text-[#10B981] hover:underline"
+                    >
+                      View Results
+                    </Link>
                   )}
                 </div>
               </div>
             ))}
           </div>
         </section>
-        <aside className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6">
+        <aside className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6 self-start">
           <h3 className="text-sm font-semibold text-slate-200">Profile snapshot</h3>
           <div className="mt-4 space-y-2 text-sm text-slate-400">
-            <p>Score: {user?.creatorScore ?? 0}</p>
-            <p>Polls created: {user?.pollsCreated ?? 0}</p>
-            <p>Total responses: {user?.totalResponsesCollected ?? 0}</p>
+            <p>Score: <span className="font-mono text-[#22D3EE]">{user?.creatorScore ?? 0}</span></p>
+            <p>Polls created: <span className="font-mono">{user?.pollsCreated ?? 0}</span></p>
+            <p>Total responses: <span className="font-mono">{user?.totalResponsesCollected ?? 0}</span></p>
+          </div>
+          
+          <div className="mt-6 border-t border-[#1E1E2E] pt-6">
+            <h3 className="text-sm font-semibold text-slate-200">Badges</h3>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {user?.badges?.length > 0 ? (
+                user.badges.map((badge, i) => (
+                  <span key={i} className="inline-block rounded bg-[#1E1E2E] px-2 py-1 text-xs text-[#22D3EE]">
+                    🏆 {badge}
+                  </span>
+                ))
+              ) : (
+                <p className="text-xs text-slate-500">No badges earned yet.</p>
+              )}
+            </div>
           </div>
         </aside>
       </main>

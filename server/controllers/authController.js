@@ -37,7 +37,16 @@ export async function register(req, res, next) {
     res.cookie("refreshToken", refreshToken, cookieOptions);
     return res.status(201).json({
       accessToken,
-      user: { id: user.id, name: user.name, email: user.email }
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email,
+        avatar: user.avatar,
+        creatorScore: user.creatorScore,
+        pollsCreated: user.pollsCreated,
+        totalResponsesCollected: user.totalResponsesCollected,
+        badges: user.badges 
+      }
     });
   } catch (error) {
     return next(error);
@@ -68,7 +77,16 @@ export async function login(req, res, next) {
     res.cookie("refreshToken", refreshToken, cookieOptions);
     return res.json({
       accessToken,
-      user: { id: user.id, name: user.name, email: user.email }
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email,
+        avatar: user.avatar,
+        creatorScore: user.creatorScore,
+        pollsCreated: user.pollsCreated,
+        totalResponsesCollected: user.totalResponsesCollected,
+        badges: user.badges 
+      }
     });
   } catch (error) {
     return next(error);

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import {
   Area,
@@ -16,6 +16,7 @@ import {
   YAxis
 } from "recharts";
 import api from "../lib/api.js";
+import QRModal from "../components/QRModal.jsx";
 
 const accent = "#22D3EE";
 const muted = "#64748B";
@@ -25,10 +26,24 @@ export default function Analytics() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const completion = analytics?.completionRate ?? 0;
   const totalResponses = analytics?.totalResponses ?? 0;
   const pollHealthScore = analytics?.pollHealthScore ?? 0;
+
+  const handlePublish = async () => {
+    try {
+      setIsPublishing(true);
+      const res = await api.patch(`/api/polls/${id}/publish`);
+      setAnalytics((prev) => ({ ...prev, status: res.data.status }));
+    } catch (err) {
+      console.error("Failed to publish poll", err);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   const participationData = useMemo(() => {
     if (!analytics) return [];
@@ -196,15 +211,49 @@ export default function Analytics() {
   return (
     <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
       <div className="mx-auto max-w-6xl px-6 py-10">
+        <div className="mb-4">
+          <Link to="/dashboard" className="text-sm text-slate-500 hover:text-slate-300">
+            ← Back to Dashboard
+          </Link>
+        </div>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-slate-50">Analytics</h1>
             <p className="mt-2 text-sm text-slate-400">Live updates as responses arrive.</p>
           </div>
-          <div className="rounded-full border border-[#1E1E2E] bg-[#13131A] px-4 py-2 text-sm">
-            {totalResponses} responses
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsQRModalOpen(true)}
+              className="rounded-full border border-[#1E1E2E] bg-[#1E1E2E] px-4 py-2 text-sm text-slate-200 hover:bg-[#2A2A3A]"
+            >
+              Share & QR
+            </button>
+            {analytics.status === 'active' && (
+              <button
+                onClick={handlePublish}
+                disabled={isPublishing}
+                className="rounded-full border border-[#10B981] bg-[#10B981]/10 px-4 py-2 text-sm text-[#10B981] hover:bg-[#10B981]/20"
+              >
+                {isPublishing ? 'Publishing...' : 'Publish Results'}
+              </button>
+            )}
+            {analytics.status === 'published' && (
+              <span className="rounded-full bg-[#10B981]/20 px-4 py-2 text-sm text-[#10B981]">
+                Published
+              </span>
+            )}
+            <div className="rounded-full border border-[#1E1E2E] bg-[#13131A] px-4 py-2 text-sm">
+              {totalResponses} responses
+            </div>
           </div>
         </div>
+
+        <QRModal
+          isOpen={isQRModalOpen}
+          onClose={() => setIsQRModalOpen(false)}
+          pollId={id}
+          pollSlug={analytics.slug}
+        />
 
         <div className="mt-8 grid gap-4 md:grid-cols-5">
           <div className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-4">

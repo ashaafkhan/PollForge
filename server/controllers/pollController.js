@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import { validationResult } from "express-validator";
 import Poll from "../models/Poll.js";
 import Response from "../models/Response.js";
+import aiInsightsService from "../services/aiInsightsService.js";
 
 function slugify(value) {
   return value
@@ -210,6 +211,40 @@ export async function activatePoll(req, res, next) {
   }
 }
 
+// Publish poll endpoint
+export async function publishPoll(req, res, next) {
+  try {
+    const poll = await Poll.findById(req.params.id);
+    if (!poll) {
+      return res.status(404).json({ message: "Poll not found" });
+    }
+    if (poll.creator.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    if (poll.status !== "active") {
+      return res.status(400).json({ message: "Only active polls can be published" });
+    }
+    // Generate AI insights if not already present
+    if (!poll.aiInsights) {
+      const insights = await aiInsightsService.generateInsights(poll);
+      poll.aiInsights = insights;
+    }
+    poll.status = "published";
+    poll.publishedAt = new Date();
+    await poll.save();
+
+    // Emit poll:published event to creator's personal room
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`user:${poll.creator}`).emit("poll:published", { pollId: poll._id, slug: poll.slug });
+    }
+
+    return res.json(poll);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 function detectDevice(userAgent) {
   const value = (userAgent || "").toLowerCase();
   if (value.includes("mobi") || value.includes("android") || value.includes("iphone")) {
@@ -225,8 +260,10 @@ export async function getAnalytics(req, res, next) {
       return res.status(404).json({ message: "Poll not found" });
     }
 
-    if (poll.creator.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Forbidden" });
+    if (poll.status !== "published") {
+      if (!req.user || poll.creator.toString() !== req.user.id) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
     }
 
     const responses = await Response.find({ poll: poll._id }).sort({ createdAt: 1 });
@@ -371,7 +408,9 @@ export async function getAnalytics(req, res, next) {
       authenticatedCount,
       deviceBreakdown,
       recentResponses,
-      pollHealthScore
+      pollHealthScore,
+      slug: poll.slug,
+      status: poll.status
     });
   } catch (error) {
     return next(error);

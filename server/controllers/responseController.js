@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import Poll from "../models/Poll.js";
 import Response from "../models/Response.js";
+import Notification from "../models/Notification.js";
+import User from "../models/User.js";
 
 function hashIdentity(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
@@ -164,6 +166,47 @@ export async function submitResponse(req, res, next) {
       : 0;
 
     await poll.save();
+
+    // Gamification & Notifications
+    const creator = await User.findById(poll.creator);
+    if (creator) {
+      creator.creatorScore += 1;
+      creator.totalResponsesCollected += 1;
+
+      if (creator.totalResponsesCollected >= 100 && !creator.badges.includes("Viral")) {
+        creator.badges.push("Viral");
+      }
+      
+      await creator.save();
+
+      const io = req.app.get("io");
+      
+      const shouldNotifyNewResponse = nextTotal <= 5 || nextTotal % 5 === 0;
+      if (shouldNotifyNewResponse) {
+        const notif = await Notification.create({
+          user: creator._id,
+          type: 'new_response',
+          message: `Your poll "${poll.title}" has ${nextTotal} responses.`,
+          pollId: poll._id
+        });
+        if (io) {
+          io.to(`user:${creator._id}`).emit('notification:new', notif);
+        }
+      }
+
+      if ([10, 50, 100, 500].includes(nextTotal)) {
+        const milestoneNotif = await Notification.create({
+          user: creator._id,
+          type: 'milestone',
+          message: `🎉 Milestone! Your poll "${poll.title}" reached ${nextTotal} responses.`,
+          pollId: poll._id
+        });
+        if (io) {
+          io.to(`user:${creator._id}`).emit('notification:new', milestoneNotif);
+          io.to(`poll:${poll._id}`).emit('poll:milestone', { milestone: nextTotal });
+        }
+      }
+    }
 
     const io = req.app.get("io");
     if (io) {

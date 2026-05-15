@@ -7,5 +7,13 @@ export function registerPollSocket(io) {
     socket.on("poll:leave", (pollId) => {
       socket.leave(`poll:${pollId}`);
     });
+
+    socket.on("user:join", (userId) => {
+      socket.join(`user:${userId}`);
+    });
+
+    socket.on("user:leave", (userId) => {
+      socket.leave(`user:${userId}`);
+    });
   });
 }
