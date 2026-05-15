@@ -9,9 +9,7 @@
 
 ## 🌐 Live Application
 
-**Frontend:** [https://pollforge.ashaaf.in](https://pollforge.ashaaf.in)
-**Backend API:** `https://pollforge-78xr.onrender.com`
-
+**Live Link:** [https://pollforge.ashaaf.in](https://pollforge.ashaaf.in)
 ---
 
 ## 📖 Project Overview
