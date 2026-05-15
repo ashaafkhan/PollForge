@@ -61,6 +61,14 @@ function validateAnswers(poll, answers) {
   return null;
 }
 
+function detectDevice(userAgent) {
+  const value = (userAgent || "").toLowerCase();
+  if (value.includes("mobi") || value.includes("android") || value.includes("iphone")) {
+    return "mobile";
+  }
+  return "desktop";
+}
+
 export async function submitResponse(req, res, next) {
   try {
     const { pollId, answers, metadata } = req.body;
@@ -117,6 +125,7 @@ export async function submitResponse(req, res, next) {
     const startedAt = metadata?.startedAt ? new Date(metadata.startedAt) : null;
     const completionTime = Number(metadata?.completionTime || 0);
 
+    const userAgent = req.get("user-agent") || "";
     const responseDoc = await Response.create({
       poll: poll._id,
       respondent: req.user?.id,
@@ -124,7 +133,7 @@ export async function submitResponse(req, res, next) {
       answers,
       metadata: {
         ipHash,
-        userAgent: req.get("user-agent") || "",
+        userAgent,
         completionTime,
         startedAt,
         submittedAt
@@ -150,13 +159,13 @@ export async function submitResponse(req, res, next) {
 
     const io = req.app.get("io");
     if (io) {
-      for (const answer of answers) {
-        io.to(`poll:${poll._id}`).emit("response:new", {
-          totalResponses: poll.meta.totalResponses,
-          questionId: answer.questionId,
-          selectedOptionId: answer.selectedOptionId
-        });
-      }
+      io.to(`poll:${poll._id}`).emit("response:new", {
+        totalResponses: poll.meta.totalResponses,
+        answers,
+        isAnonymous: responseDoc.isAnonymous,
+        device: detectDevice(userAgent),
+        submittedAt: responseDoc.metadata?.submittedAt || submittedAt
+      });
     }
 
     return res.status(201).json({ id: responseDoc.id });

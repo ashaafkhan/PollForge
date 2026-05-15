@@ -82,19 +82,30 @@ export default function Analytics() {
     socket.on("response:new", (payload) => {
       setAnalytics((prev) => {
         if (!prev) return prev;
-        const next = { ...prev };
-        next.totalResponses = payload.totalResponses ?? prev.totalResponses + 1;
+        const nextTotalResponses = payload.totalResponses ?? prev.totalResponses + 1;
+        const viewCount = prev.viewCount || 0;
+        const completionRate = viewCount
+          ? Math.round((nextTotalResponses / viewCount) * 1000) / 10
+          : 0;
 
+        const next = {
+          ...prev,
+          totalResponses: nextTotalResponses,
+          completionRate
+        };
+
+        const answers = payload.answers || [];
         next.questions = prev.questions.map((question) => {
-          if (String(question.questionId) !== String(payload.questionId)) {
-            return question;
-          }
+          const match = answers.find(
+            (answer) => String(answer.questionId) === String(question.questionId)
+          );
+          if (!match) return question;
+
           const options = question.options.map((option) => {
-            if (String(option.optionId) !== String(payload.selectedOptionId)) {
+            if (String(option.optionId) !== String(match.selectedOptionId)) {
               return option;
             }
-            const count = option.count + 1;
-            return { ...option, count };
+            return { ...option, count: option.count + 1 };
           });
           const totalAnswered = question.totalAnswered + 1;
           const withPercent = options.map((option) => ({
@@ -111,10 +122,47 @@ export default function Analytics() {
             ...question,
             options: withPercent,
             totalAnswered,
-            skippedCount: Math.max(0, next.totalResponses - totalAnswered),
+            skippedCount: Math.max(0, nextTotalResponses - totalAnswered),
             leadingOption: { text: leadingOption.text, count: leadingOption.count }
           };
         });
+
+        if (payload.isAnonymous) {
+          next.anonymousCount = (prev.anonymousCount || 0) + 1;
+        } else {
+          next.authenticatedCount = (prev.authenticatedCount || 0) + 1;
+        }
+
+        if (payload.device) {
+          next.deviceBreakdown = {
+            ...prev.deviceBreakdown,
+            [payload.device]: (prev.deviceBreakdown?.[payload.device] || 0) + 1
+          };
+        }
+
+        if (payload.submittedAt) {
+          const key = new Date(payload.submittedAt).toISOString().slice(0, 10);
+          const updatedByDay = prev.responsesByDay.map((entry) => ({ ...entry }));
+          const existing = updatedByDay.find((entry) => entry.date === key);
+          if (existing) {
+            existing.count += 1;
+          } else {
+            updatedByDay.push({ date: key, count: 1 });
+            updatedByDay.sort((a, b) => (a.date > b.date ? 1 : -1));
+          }
+          next.responsesByDay = updatedByDay;
+        }
+
+        const nextRecent = [
+          {
+            id: `${payload.submittedAt || Date.now()}-${nextTotalResponses}`,
+            submittedAt: payload.submittedAt || new Date().toISOString(),
+            isAnonymous: Boolean(payload.isAnonymous),
+            answersCount: answers.length
+          },
+          ...(prev.recentResponses || [])
+        ].slice(0, 5);
+        next.recentResponses = nextRecent;
 
         return next;
       });
