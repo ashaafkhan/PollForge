@@ -49,9 +49,16 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const loginWithFirebase = useCallback(async (idToken) => {
+    const response = await api.post("/api/auth/firebase", { idToken });
+    setAccessToken(response.data.accessToken);
+    setUser(response.data.user);
+    return response.data.user;
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, fetchMe }),
-    [user, loading, login, register, logout, fetchMe]
+    () => ({ user, loading, login, register, logout, fetchMe, loginWithFirebase }),
+    [user, loading, login, register, logout, fetchMe, loginWithFirebase]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

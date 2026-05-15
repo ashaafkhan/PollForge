@@ -15,6 +15,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^3.9.0",
     "axios": "^1.7.9",
+    "firebase": "^12.13.0",
     "pollforge": "file:..",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

@@ -13,7 +13,6 @@ const PollPublic = lazy(() => import("./pages/PollPublic.jsx"));
 const Analytics = lazy(() => import("./pages/Analytics.jsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
 const NotFound = lazy(() => import("./pages/NotFound.jsx"));
-const AuthCallback = lazy(() => import("./pages/AuthCallback.jsx"));
 
 function LoadingScreen() {
   return (
@@ -84,7 +83,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/p/:slug" element={<PollPublic />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

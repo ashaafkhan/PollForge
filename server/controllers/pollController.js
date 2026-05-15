@@ -2,7 +2,7 @@ import { nanoid } from "nanoid";
 import { validationResult } from "express-validator";
 import Poll from "../models/Poll.js";
 import Response from "../models/Response.js";
-import aiInsightsService from "../services/aiInsightsService.js";
+import { generateInsights } from "../services/aiInsightsService.js";
 
 function slugify(value) {
   return value
@@ -226,7 +226,7 @@ export async function publishPoll(req, res, next) {
     }
     // Generate AI insights if not already present
     if (!poll.aiInsights) {
-      const insights = await aiInsightsService.generateInsights(poll);
+      const insights = await generateInsights(poll);
       poll.aiInsights = insights;
     }
     poll.status = "published";

@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext.jsx";
+import { auth, googleProvider } from "../lib/firebase.js";
+import { signInWithPopup } from "firebase/auth";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -13,7 +15,7 @@ const schema = z.object({
 });
 
 export default function Register() {
-  const { register: signup } = useAuth();
+  const { register: signup, loginWithFirebase } = useAuth();
   const navigate = useNavigate();
   const { register, handleSubmit, formState } = useForm({
     resolver: zodResolver(schema)
@@ -26,6 +28,19 @@ export default function Register() {
       navigate("/dashboard", { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.message || "Registration failed");
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const idToken = await result.user.getIdToken();
+      await loginWithFirebase(idToken);
+      navigate("/dashboard", { replace: true });
+      toast.success("Welcome aboard! 🎉");
+    } catch (error) {
+      console.error("Google login error:", error);
+      toast.error("Google authentication failed");
     }
   };
 
@@ -94,7 +109,7 @@ export default function Register() {
 
           <button
             type="button"
-            onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/google`}
+            onClick={handleGoogleLogin}
             className="flex w-full items-center justify-center gap-3 rounded-lg border border-[#1E1E2E] bg-transparent px-4 py-2 text-sm text-slate-100 hover:bg-[#1E1E2E] transition-colors"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24">

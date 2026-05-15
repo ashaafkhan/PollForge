@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { validationResult } from "express-validator";
 import User from "../models/User.js";
+import admin from "../config/firebaseAdmin.js";
 import {
   signAccessToken,
   signRefreshToken,
@@ -157,5 +158,54 @@ export async function googleCallback(req, res) {
   } catch (error) {
     console.error("Google callback error:", error);
     return res.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
+  }
+}
+
+export async function firebaseLogin(req, res, next) {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ message: "ID token is required" });
+    }
+
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const { uid, email, name, picture } = decodedToken;
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = await User.create({
+        name: name || email.split('@')[0],
+        email,
+        googleId: uid,
+        avatar: picture || '',
+      });
+      // Award "First Poll" badge (or similar logic)
+    } else if (!user.googleId) {
+      user.googleId = uid;
+      if (picture && !user.avatar) user.avatar = picture;
+      await user.save();
+    }
+
+    const accessToken = signAccessToken({ sub: user.id, email: user.email });
+    const refreshToken = signRefreshToken({ sub: user.id, email: user.email });
+
+    res.cookie("refreshToken", refreshToken, cookieOptions);
+    return res.json({
+      accessToken,
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email,
+        avatar: user.avatar,
+        creatorScore: user.creatorScore,
+        pollsCreated: user.pollsCreated,
+        totalResponsesCollected: user.totalResponsesCollected,
+        badges: user.badges 
+      }
+    });
+  } catch (error) {
+    console.error("Firebase login error:", error);
+    return res.status(401).json({ message: "Authentication failed" });
   }
 }
