@@ -35,8 +35,16 @@ function validateAnswers(poll, answers) {
     }
   });
 
+  const isQuestionVisible = (question) => {
+    if (!question.conditionalLogic?.enabled) return true;
+    const showIf = question.conditionalLogic.showIf || {};
+    if (!showIf.questionId || !showIf.selectedOptionId) return false;
+    const selected = answerMap.get(String(showIf.questionId));
+    return selected && String(selected) === String(showIf.selectedOptionId);
+  };
+
   for (const question of poll.questions || []) {
-    if (question.required) {
+    if (question.required && isQuestionVisible(question)) {
       const selected = answerMap.get(String(question._id));
       if (!selected) {
         return "All required questions must be answered";

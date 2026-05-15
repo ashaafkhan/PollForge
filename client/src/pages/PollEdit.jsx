@@ -5,12 +5,18 @@ import { CSS } from "@dnd-kit/utilities";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../lib/api.js";
 
-const createId = () => Math.random().toString(36).slice(2, 10);
+const createId = () => Array.from(crypto.getRandomValues(new Uint8Array(12)))
+  .map((byte) => byte.toString(16).padStart(2, "0"))
+  .join("");
 const emptyQuestion = () => ({
   id: createId(),
   text: "",
   required: false,
-  options: [{ text: "" }, { text: "" }]
+  options: [{ id: createId(), text: "" }, { id: createId(), text: "" }],
+  conditionalLogic: {
+    enabled: false,
+    showIf: { questionId: "", selectedOptionId: "" }
+  }
 });
 
 function toLocalDateTime(value) {
@@ -124,8 +130,15 @@ export default function PollEdit() {
                 text: q.text || "",
                 required: q.required || false,
                 options: q.options?.length
-                  ? q.options.map((opt) => ({ text: opt.text || "" }))
-                  : [{ text: "" }, { text: "" }]
+                  ? q.options.map((opt) => ({ id: opt._id, text: opt.text || "" }))
+                  : [{ id: createId(), text: "" }, { id: createId(), text: "" }],
+                conditionalLogic: {
+                  enabled: Boolean(q.conditionalLogic?.enabled),
+                  showIf: {
+                    questionId: q.conditionalLogic?.showIf?.questionId || "",
+                    selectedOptionId: q.conditionalLogic?.showIf?.selectedOptionId || ""
+                  }
+                }
               }))
             : [emptyQuestion()]
         );
@@ -159,7 +172,9 @@ export default function PollEdit() {
     setQuestions((prev) =>
       prev.map((q, i) => {
         if (i !== qIndex) return q;
-        const options = q.options.map((opt, idx) => (idx === oIndex ? { text: value } : opt));
+        const options = q.options.map((opt, idx) =>
+          idx === oIndex ? { ...opt, text: value } : opt
+        );
         return { ...q, options };
       })
     );
@@ -167,7 +182,9 @@ export default function PollEdit() {
 
   const addOption = (qIndex) => {
     setQuestions((prev) =>
-      prev.map((q, i) => (i === qIndex ? { ...q, options: [...q.options, { text: "" }] } : q))
+      prev.map((q, i) =>
+        i === qIndex ? { ...q, options: [...q.options, { id: createId(), text: "" }] } : q
+      )
     );
   };
 
@@ -210,6 +227,17 @@ export default function PollEdit() {
       return;
     }
 
+    for (let index = 0; index < questions.length; index += 1) {
+      const question = questions[index];
+      if (question.conditionalLogic?.enabled) {
+        const showIf = question.conditionalLogic.showIf || {};
+        if (!showIf.questionId || !showIf.selectedOptionId) {
+          setError(`Conditional logic for question ${index + 1} is incomplete`);
+          return;
+        }
+      }
+    }
+
     const payload = {
       title: trimmedTitle,
       description,
@@ -219,12 +247,24 @@ export default function PollEdit() {
       settings: {
         maxResponses: maxResponses || 0
       },
-      questions: questions.map((q, index) => ({
+      questions: questions.map((q, index) => {
+        return {
+        _id: q.id,
         text: q.text,
         required: q.required,
         order: index,
-        options: q.options.map((opt, oIndex) => ({ text: opt.text, order: oIndex }))
-      }))
+        options: q.options.map((opt, oIndex) => ({ _id: opt.id, text: opt.text, order: oIndex })),
+        conditionalLogic: q.conditionalLogic?.enabled
+          ? {
+              enabled: true,
+              showIf: {
+                questionId: q.conditionalLogic.showIf.questionId,
+                selectedOptionId: q.conditionalLogic.showIf.selectedOptionId
+              }
+            }
+          : { enabled: false }
+        };
+      })
     };
 
     try {
@@ -396,6 +436,93 @@ export default function PollEdit() {
                       Add option
                     </button>
                   </div>
+
+                  {qIndex > 0 && (
+                    <div className="mt-4 rounded-lg border border-[#1E1E2E] bg-[#0F0F15] p-3">
+                      <label className="flex items-center gap-2 text-xs text-slate-400">
+                        <input
+                          type="checkbox"
+                          checked={question.conditionalLogic?.enabled}
+                          onChange={(event) =>
+                            updateQuestion(qIndex, {
+                              conditionalLogic: {
+                                ...question.conditionalLogic,
+                                enabled: event.target.checked
+                              }
+                            })
+                          }
+                        />
+                        Show only if
+                      </label>
+
+                      {question.conditionalLogic?.enabled && (
+                        <div className="mt-3 grid gap-3 md:grid-cols-2">
+                          <div>
+                            <label className="text-[11px] uppercase text-slate-500">
+                              Question
+                            </label>
+                            <select
+                              value={question.conditionalLogic.showIf.questionId}
+                              onChange={(event) =>
+                                updateQuestion(qIndex, {
+                                  conditionalLogic: {
+                                    ...question.conditionalLogic,
+                                    showIf: {
+                                      ...question.conditionalLogic.showIf,
+                                      questionId: event.target.value,
+                                      selectedOptionId: ""
+                                    }
+                                  }
+                                })
+                              }
+                              className="mt-2 w-full rounded-lg border border-[#1E1E2E] bg-transparent px-3 py-2 text-xs"
+                            >
+                              <option value="">Select question</option>
+                              {questions.slice(0, qIndex).map((prevQuestion) => (
+                                <option key={prevQuestion.id} value={prevQuestion.id}>
+                                  {prevQuestion.text || "Untitled question"}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[11px] uppercase text-slate-500">
+                              Option
+                            </label>
+                            <select
+                              value={question.conditionalLogic.showIf.selectedOptionId}
+                              onChange={(event) =>
+                                updateQuestion(qIndex, {
+                                  conditionalLogic: {
+                                    ...question.conditionalLogic,
+                                    showIf: {
+                                      ...question.conditionalLogic.showIf,
+                                      selectedOptionId: event.target.value
+                                    }
+                                  }
+                                })
+                              }
+                              className="mt-2 w-full rounded-lg border border-[#1E1E2E] bg-transparent px-3 py-2 text-xs"
+                              disabled={!question.conditionalLogic.showIf.questionId}
+                            >
+                              <option value="">Select option</option>
+                              {questions
+                                .slice(0, qIndex)
+                                .find(
+                                  (prevQuestion) =>
+                                    prevQuestion.id === question.conditionalLogic.showIf.questionId
+                                )
+                                ?.options.map((option, optionIndex) => (
+                                  <option key={option.id || optionIndex} value={option.id}>
+                                    {option.text || `Option ${optionIndex + 1}`}
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </SortableQuestion>
               ))}
             </SortableContext>

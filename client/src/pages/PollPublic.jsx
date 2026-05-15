@@ -51,13 +51,20 @@ export default function PollPublic() {
     setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
   };
 
+  const isQuestionVisible = (question) => {
+    if (!question.conditionalLogic?.enabled) return true;
+    const showIf = question.conditionalLogic.showIf || {};
+    if (!showIf.questionId || !showIf.selectedOptionId) return false;
+    return String(answers[showIf.questionId]) === String(showIf.selectedOptionId);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!poll) return;
     setError("");
 
     const requiredMissing = poll.questions.some(
-      (question) => question.required && !answers[question._id]
+      (question) => question.required && isQuestionVisible(question) && !answers[question._id]
     );
     if (requiredMissing) {
       setError("Please answer all required questions");
@@ -71,7 +78,7 @@ export default function PollPublic() {
       await api.post("/api/responses", {
         pollId: poll._id,
         answers: poll.questions
-          .filter((question) => answers[question._id])
+          .filter((question) => answers[question._id] && isQuestionVisible(question))
           .map((question) => ({
             questionId: question._id,
             selectedOptionId: answers[question._id]
@@ -191,7 +198,7 @@ export default function PollPublic() {
         )}
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-          {poll.questions.map((question, index) => (
+          {poll.questions.filter(isQuestionVisible).map((question, index) => (
             <section
               key={question._id}
               className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6"
