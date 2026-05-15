@@ -4,6 +4,7 @@ import {
   activatePoll,
   createPoll,
   deletePoll,
+  getAnalytics,
   getPollById,
   getMyPolls,
   getPollBySlug,
@@ -22,6 +23,7 @@ router.post(
 
 router.get("/my", authMiddleware, getMyPolls);
 router.get("/id/:id", authMiddleware, getPollById);
+router.get("/:id/analytics", authMiddleware, getAnalytics);
 router.get("/:slug", getPollBySlug);
 router.put("/:id", authMiddleware, updatePoll);
 router.delete("/:id", authMiddleware, deletePoll);

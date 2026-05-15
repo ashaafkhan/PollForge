@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import { validationResult } from "express-validator";
 import Poll from "../models/Poll.js";
+import Response from "../models/Response.js";
 
 function slugify(value) {
   return value
@@ -202,6 +203,137 @@ export async function activatePoll(req, res, next) {
     await poll.save();
 
     return res.json(poll);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+function detectDevice(userAgent) {
+  const value = (userAgent || "").toLowerCase();
+  if (value.includes("mobi") || value.includes("android") || value.includes("iphone")) {
+    return "mobile";
+  }
+  return "desktop";
+}
+
+export async function getAnalytics(req, res, next) {
+  try {
+    const poll = await Poll.findById(req.params.id);
+    if (!poll) {
+      return res.status(404).json({ message: "Poll not found" });
+    }
+
+    if (poll.creator.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const responses = await Response.find({ poll: poll._id }).sort({ createdAt: 1 });
+    const totalResponses = responses.length;
+    const viewCount = poll.meta?.viewCount || 0;
+    const completionRate = viewCount
+      ? Math.round((totalResponses / viewCount) * 1000) / 10
+      : 0;
+
+    const responsesByDayMap = new Map();
+    let firstResponseAt = null;
+    let lastResponseAt = null;
+    let anonymousCount = 0;
+    let authenticatedCount = 0;
+    const deviceBreakdown = { mobile: 0, desktop: 0 };
+
+    responses.forEach((response) => {
+      const createdAt = response.createdAt || response.metadata?.submittedAt;
+      if (createdAt) {
+        const key = new Date(createdAt).toISOString().slice(0, 10);
+        responsesByDayMap.set(key, (responsesByDayMap.get(key) || 0) + 1);
+        if (!firstResponseAt) {
+          firstResponseAt = createdAt;
+        }
+        lastResponseAt = createdAt;
+      }
+
+      if (response.isAnonymous) {
+        anonymousCount += 1;
+      } else {
+        authenticatedCount += 1;
+      }
+
+      const device = detectDevice(response.metadata?.userAgent);
+      deviceBreakdown[device] += 1;
+    });
+
+    const responsesByDay = Array.from(responsesByDayMap.entries()).map(([date, count]) => ({
+      date,
+      count
+    }));
+
+    const questionStats = poll.questions.map((question) => {
+      const optionCounts = new Map();
+      question.options.forEach((opt) => optionCounts.set(String(opt._id), 0));
+
+      let totalAnswered = 0;
+
+      responses.forEach((response) => {
+        const answer = response.answers.find(
+          (item) => String(item.questionId) === String(question._id)
+        );
+        if (answer) {
+          totalAnswered += 1;
+          const key = String(answer.selectedOptionId);
+          optionCounts.set(key, (optionCounts.get(key) || 0) + 1);
+        }
+      });
+
+      const options = question.options.map((option) => {
+        const count = optionCounts.get(String(option._id)) || 0;
+        const percentage = totalAnswered
+          ? Math.round((count / totalAnswered) * 1000) / 10
+          : 0;
+        return {
+          optionId: option._id,
+          text: option.text,
+          count,
+          percentage
+        };
+      });
+
+      const leadingOption = options.reduce(
+        (leader, current) => (current.count > leader.count ? current : leader),
+        options[0] || { text: "", count: 0 }
+      );
+
+      return {
+        questionId: question._id,
+        text: question.text,
+        required: question.required,
+        totalAnswered,
+        skippedCount: totalResponses - totalAnswered,
+        options,
+        leadingOption: { text: leadingOption.text, count: leadingOption.count }
+      };
+    });
+
+    const recentResponses = responses.slice(-5).reverse().map((response) => ({
+      id: response._id,
+      submittedAt: response.metadata?.submittedAt || response.createdAt,
+      isAnonymous: response.isAnonymous,
+      answersCount: response.answers.length
+    }));
+
+    return res.json({
+      totalResponses,
+      viewCount,
+      completionRate,
+      avgCompletionTime: poll.meta?.avgCompletionTime || 0,
+      firstResponseAt,
+      lastResponseAt,
+      responsesByDay,
+      questions: questionStats,
+      anonymousCount,
+      authenticatedCount,
+      deviceBreakdown,
+      recentResponses
+    });
   } catch (error) {
     return next(error);
   }

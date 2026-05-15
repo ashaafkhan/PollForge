@@ -113,6 +113,12 @@ export default function Dashboard() {
                   >
                     Edit
                   </Link>
+                  <Link
+                    to={`/polls/${poll._id}/analytics`}
+                    className="text-xs uppercase text-slate-300"
+                  >
+                    Analytics
+                  </Link>
                   {poll.status === "draft" && (
                     <button
                       type="button"
