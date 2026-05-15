@@ -6,7 +6,6 @@ import {
   me,
   refresh,
   register,
-  googleCallback,
   firebaseLogin
 } from "../controllers/authController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
@@ -33,10 +32,6 @@ router.post(
 router.post("/refresh", refresh);
 router.post("/logout", logout);
 router.get("/me", authMiddleware, me);
-
-// Google OAuth routes
-router.get("/google", passport.authenticate("google", { scope: ["profile", "email"], session: false }));
-router.get("/google/callback", passport.authenticate("google", { failureRedirect: "/login?error=google_auth_failed", session: false }), googleCallback);
 
 // Firebase login route
 router.post("/firebase", firebaseLogin);

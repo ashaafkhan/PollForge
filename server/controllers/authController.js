@@ -144,23 +144,6 @@ export async function me(req, res, next) {
   }
 }
 
-export async function googleCallback(req, res) {
-  try {
-    const user = req.user;
-    const accessToken = signAccessToken({ sub: user.id, email: user.email });
-    const refreshToken = signRefreshToken({ sub: user.id, email: user.email });
-
-    res.cookie("refreshToken", refreshToken, cookieOptions);
-    
-    // Redirect to frontend with access token in URL
-    const redirectUrl = `${process.env.CLIENT_URL}/auth/callback?token=${accessToken}`;
-    return res.redirect(redirectUrl);
-  } catch (error) {
-    console.error("Google callback error:", error);
-    return res.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
-  }
-}
-
 export async function firebaseLogin(req, res, next) {
   try {
     const { idToken } = req.body;
