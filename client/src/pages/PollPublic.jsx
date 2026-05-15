@@ -102,6 +102,20 @@ export default function PollPublic() {
     </div>
   );
 
+  if (error && !poll) return (
+    <div className="min-h-screen bg-[var(--bg)] flex flex-col items-center justify-center text-[var(--text-main)] p-6 text-center">
+      <div className="mb-4 text-5xl opacity-50">⚠️</div>
+      <h1 className="text-2xl font-bold mb-2">Oops!</h1>
+      <p className="text-[var(--text-muted)] mb-6">{error}</p>
+      <Link to="/" className="rounded-full bg-[var(--primary)] px-6 py-2 text-sm font-bold text-white hover:opacity-90">
+        Go Home
+      </Link>
+    </div>
+  );
+
+  if (!poll) return null;
+
+
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text-main)] theme-transition pb-20">
       <header className="border-b border-[var(--border)] bg-[var(--surface)] mb-10">
