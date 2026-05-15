@@ -174,7 +174,6 @@ export default function PollPublic() {
           <ResultsDisplay 
             pollId={poll._id} 
             pollTitle={poll.title} 
-            aiInsights={poll.aiInsights} 
           />
         </div>
       </div>

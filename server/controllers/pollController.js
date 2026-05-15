@@ -2,7 +2,6 @@ import { nanoid } from "nanoid";
 import { validationResult } from "express-validator";
 import Poll from "../models/Poll.js";
 import Response from "../models/Response.js";
-import { generateInsights } from "../services/aiInsightsService.js";
 
 function slugify(value) {
   return value
@@ -224,11 +223,7 @@ export async function publishPoll(req, res, next) {
     if (poll.status !== "active") {
       return res.status(400).json({ message: "Only active polls can be published" });
     }
-    // Generate AI insights if not already present
-    if (!poll.aiInsights) {
-      const insights = await generateInsights(poll);
-      poll.aiInsights = insights;
-    }
+    
     poll.status = "published";
     poll.publishedAt = new Date();
     await poll.save();

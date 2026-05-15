@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../lib/api.js";
 
-export default function ResultsDisplay({ pollId, pollTitle, aiInsights }) {
+export default function ResultsDisplay({ pollId, pollTitle }) {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -29,18 +29,6 @@ export default function ResultsDisplay({ pollId, pollTitle, aiInsights }) {
 
   return (
     <div className="space-y-8">
-      {aiInsights && (
-        <section className="rounded-2xl border border-[#22D3EE]/30 bg-[#22D3EE]/5 p-6 shadow-[0_0_20px_rgba(34,211,238,0.05)]">
-          <div className="flex items-center gap-3">
-            <span className="text-xl">✨</span>
-            <h2 className="text-sm font-semibold text-[#22D3EE]">AI Insights</h2>
-          </div>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-300">
-            {aiInsights}
-          </p>
-        </section>
-      )}
-
       <div className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6">
         <h3 className="text-sm font-semibold text-slate-200">Participation Overview</h3>
         <div className="mt-4 flex gap-6">

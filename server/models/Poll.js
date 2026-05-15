@@ -63,7 +63,6 @@ const pollSchema = new mongoose.Schema(
       completionRate: { type: Number, default: 0 }
     },
     publishedAt: { type: Date },
-    aiInsights: { type: String, default: "" },
     tags: { type: [String], default: [] }
   },
   { timestamps: true }
