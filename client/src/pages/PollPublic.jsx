@@ -23,7 +23,6 @@ export default function PollPublic() {
 
   useEffect(() => {
     let active = true;
-
     const fetchPoll = async () => {
       try {
         const response = await api.get(`/api/polls/${slug}`);
@@ -35,16 +34,12 @@ export default function PollPublic() {
         setHasResponded(Boolean(check.data.hasResponded));
       } catch (err) {
         if (!active) return;
-        if (err.response?.status === 410) {
-          setPollExpired(true);
-        } else {
-          setError(err.response?.data?.message || "Failed to load poll");
-        }
+        if (err.response?.status === 410) setPollExpired(true);
+        else setError(err.response?.data?.message || "Failed to load poll");
       } finally {
         if (active) setLoading(false);
       }
     };
-
     fetchPoll();
     return () => { active = false; };
   }, [slug]);
@@ -62,15 +57,10 @@ export default function PollPublic() {
 
   useEffect(() => {
     if (!poll) return;
-    const visibleIds = new Set(
-      poll.questions.filter((question) => isQuestionVisible(question)).map((q) => q._id)
-    );
+    const visibleIds = new Set(poll.questions.filter(isQuestionVisible).map((q) => q._id));
     setAnswers((prev) => {
       const next = Object.entries(prev).filter(([key]) => visibleIds.has(key));
-      if (next.length === Object.keys(prev).length) {
-        return prev;
-      }
-      return Object.fromEntries(next);
+      return next.length === Object.keys(prev).length ? prev : Object.fromEntries(next);
     });
   }, [answers, poll]);
 
@@ -79,13 +69,8 @@ export default function PollPublic() {
     if (!poll) return;
     setError("");
 
-    const requiredMissing = poll.questions.some(
-      (question) => question.required && isQuestionVisible(question) && !answers[question._id]
-    );
-    if (requiredMissing) {
-      setError("Please answer all required questions");
-      return;
-    }
+    const requiredMissing = poll.questions.some(q => q.required && isQuestionVisible(q) && !answers[q._id]);
+    if (requiredMissing) return setError("Please answer all required questions");
 
     try {
       setSubmitting(true);
@@ -94,11 +79,8 @@ export default function PollPublic() {
       await api.post("/api/responses", {
         pollId: poll._id,
         answers: poll.questions
-          .filter((question) => answers[question._id] && isQuestionVisible(question))
-          .map((question) => ({
-            questionId: question._id,
-            selectedOptionId: answers[question._id]
-          })),
+          .filter(q => answers[q._id] && isQuestionVisible(q))
+          .map(q => ({ questionId: q._id, selectedOptionId: answers[q._id] })),
         metadata: {
           startedAt: startedAt ? new Date(startedAt).toISOString() : null,
           submittedAt: new Date(submittedAt).toISOString(),
@@ -106,199 +88,120 @@ export default function PollPublic() {
         }
       });
       setSuccess(true);
-      toast.success("Response submitted! Thanks for participating.");
+      toast.success("Response submitted!");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to submit response");
-      setError(err.response?.data?.message || "Failed to submit response");
+      setError(err.response?.data?.message || "Submission failed");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
-        <div className="mx-auto max-w-3xl space-y-4 px-6 py-10">
-          <div className="animate-shimmer h-8 w-64 rounded" />
-          <div className="animate-shimmer h-4 w-48 rounded" />
-          <div className="animate-shimmer mt-8 h-40 w-full rounded-2xl" />
-          <div className="animate-shimmer h-40 w-full rounded-2xl" />
-        </div>
-      </div>
-    );
-  }
-
-  if (pollExpired) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
-        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-          <span className="text-5xl">⏳</span>
-          <h1 className="mt-6 font-display text-3xl font-bold text-slate-50">This poll has closed</h1>
-          <p className="mt-3 text-slate-500">The polling period has ended. No more responses are being accepted.</p>
-          <Link to="/" className="mt-6 inline-block rounded-full border border-[#22D3EE] px-5 py-2 text-sm text-[#22D3EE] hover:bg-[#22D3EE]/10 transition-colors">
-            Back to Home
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !poll) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
-        <div className="mx-auto max-w-3xl px-6 py-10">
-          <p className="text-sm text-rose-400">{error}</p>
-          <Link to="/" className="mt-4 inline-block text-sm text-[#22D3EE]">
-            Back to home
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!poll) {
-    return null;
-  }
-
-  if (poll.status === 'published') {
-    return (
-      <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
-        <div className="mx-auto max-w-3xl px-6 py-10">
-          <div className="mb-6 flex flex-col items-start gap-2">
-            <span className="rounded-full bg-[#10B981]/20 px-3 py-1 text-xs uppercase text-[#10B981]">
-              Results Published
-            </span>
-            <h1 className="text-3xl font-bold text-slate-50">{poll.title}</h1>
-            {poll.description && <p className="mt-2 text-sm text-slate-400">{poll.description}</p>}
-          </div>
-          <ResultsDisplay 
-            pollId={poll._id} 
-            pollTitle={poll.title} 
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (poll.requireAuth && !user) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
-        <div className="mx-auto max-w-3xl px-6 py-10">
-          <h1 className="text-2xl font-semibold text-slate-50">Sign in required</h1>
-          <p className="mt-2 text-sm text-slate-400">
-            This poll requires authentication. Please sign in to respond.
-          </p>
-          <div className="mt-6 flex gap-3">
-            <Link
-              to="/login"
-              state={{ from: location }}
-              className="rounded-full border border-[#22D3EE] px-4 py-2 text-sm text-[#22D3EE]"
-            >
-              Log in
-            </Link>
-            <Link
-              to="/register"
-              className="rounded-full border border-[#1E1E2E] px-4 py-2 text-sm text-slate-200"
-            >
-              Create account
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (hasResponded) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
-        <div className="mx-auto max-w-3xl px-6 py-10">
-          <h1 className="text-2xl font-semibold text-slate-50">You already responded</h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Thanks for participating. You have already submitted a response.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
-        <div className="mx-auto max-w-3xl px-6 py-10">
-          <h1 className="text-2xl font-semibold text-slate-50">Response submitted</h1>
-          <p className="mt-2 text-sm text-slate-400">
-            {poll.settings?.confirmationMessage || "Thanks for your response."}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
+      <div className="h-8 w-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
-      <div className="mx-auto max-w-3xl px-6 py-10">
-        <h1 className="text-2xl font-semibold text-slate-50">{poll.title}</h1>
-        {poll.description && <p className="mt-2 text-sm text-slate-400">{poll.description}</p>}
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text-main)] theme-transition pb-20">
+      <header className="border-b border-[var(--border)] bg-[var(--surface)] mb-10">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
+          <Link to="/" className="flex items-center gap-3">
+            <img src="/pollforge-logo.png" alt="Logo" className="h-8 w-8" />
+            <span className="font-display text-xl font-black gradient-text">PollForge</span>
+          </Link>
+        </div>
+      </header>
 
-        {poll.settings?.showProgressBar && (
-          <div className="mt-6">
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span>{answeredCount} answered</span>
-              <span>{poll.questions.length} total</span>
-            </div>
-            <div className="mt-2 h-1 rounded-full bg-[#1E1E2E]">
-              <div
-                className="h-1 rounded-full bg-[#22D3EE]"
-                style={{ width: `${(answeredCount / poll.questions.length) * 100}%` }}
-              />
-            </div>
+      <div className="mx-auto max-w-3xl px-6">
+        {pollExpired ? (
+          <div className="py-20 text-center">
+            <span className="text-5xl">⏳</span>
+            <h1 className="mt-6 font-display text-3xl font-black">This poll has closed</h1>
+            <p className="mt-3 text-[var(--text-muted)]">No more responses are being accepted.</p>
+            <Link to="/" className="mt-8 inline-block rounded-full border border-[var(--primary)] px-8 py-3 text-sm font-bold text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all">
+              Back to Home
+            </Link>
           </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-          {poll.questions.filter(isQuestionVisible).map((question, index) => (
-            <section
-              key={question._id}
-              className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6"
-            >
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-slate-200">
-                  {index + 1}. {question.text}
-                </h2>
-                {question.required && (
-                  <span className="text-xs uppercase text-amber-400">Required</span>
-                )}
-              </div>
-              <div className="mt-4 space-y-2">
-                {question.options.map((option) => (
-                  <label
-                    key={option._id}
-                    className="flex items-center gap-3 rounded-lg border border-[#1E1E2E] bg-[#0F0F15] px-3 py-2 text-sm text-slate-200"
-                  >
-                    <input
-                      type="radio"
-                      name={`question-${question._id}`}
-                      value={option._id}
-                      checked={answers[question._id] === option._id}
-                      onChange={() => handleSelect(question._id, option._id)}
+        ) : success ? (
+          <div className="py-20 text-center animate-fade-in-up">
+            <div className="mb-6 mx-auto h-20 w-20 rounded-full bg-emerald-500/10 flex items-center justify-center text-4xl">✅</div>
+            <h1 className="font-display text-3xl font-black">Response Submitted</h1>
+            <p className="mt-4 text-[var(--text-muted)] text-lg">
+              {poll.settings?.confirmationMessage || "Thank you for your participation!"}
+            </p>
+            <Link to="/" className="mt-10 inline-block text-sm font-bold text-[var(--primary)] hover:underline">
+              Create your own poll with PollForge →
+            </Link>
+          </div>
+        ) : poll.status === 'published' ? (
+          <div className="animate-fade-in-up">
+             <div className="mb-8 p-6 rounded-3xl bg-[var(--primary-glow)] border border-[var(--primary)]/20">
+                <h1 className="text-2xl font-black">{poll.title}</h1>
+                <p className="mt-2 text-[var(--text-muted)]">{poll.description}</p>
+             </div>
+             <ResultsDisplay pollId={poll._id} pollTitle={poll.title} />
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-8 animate-fade-in-up">
+            <div className="mb-10">
+              <h1 className="font-display text-4xl font-black">{poll.title}</h1>
+              {poll.description && <p className="mt-4 text-lg text-[var(--text-muted)] leading-relaxed">{poll.description}</p>}
+              
+              {poll.settings?.showProgressBar && (
+                <div className="mt-8 space-y-2">
+                  <div className="flex justify-between text-[10px] uppercase tracking-widest font-black text-[var(--text-muted)]">
+                    <span>Progress</span>
+                    <span>{Math.round((answeredCount / poll.questions.length) * 100)}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-[var(--border)] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] transition-all duration-500" 
+                      style={{ width: `${(answeredCount / poll.questions.length) * 100}%` }}
                     />
-                    {option.text}
-                  </label>
-                ))}
-              </div>
-            </section>
-          ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
-          {error && <p className="text-sm text-rose-400">{error}</p>}
+            {poll.questions.filter(isQuestionVisible).map((q, idx) => (
+              <section key={q._id} className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-sm">
+                <div className="flex justify-between items-start mb-6">
+                  <h2 className="text-lg font-bold">
+                    <span className="text-[var(--primary)] mr-2">{idx + 1}.</span> {q.text}
+                  </h2>
+                  {q.required && <span className="text-[10px] font-black uppercase text-amber-500 bg-amber-500/10 px-2 py-1 rounded">Required</span>}
+                </div>
+                <div className="grid gap-3">
+                  {q.options.map((opt) => (
+                    <label key={opt._id} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${answers[q._id] === opt._id ? 'border-[var(--primary)] bg-[var(--primary-glow)]' : 'border-[var(--border)] hover:border-[var(--text-muted)]'}`}>
+                      <input 
+                        type="radio" 
+                        name={q._id} 
+                        value={opt._id} 
+                        checked={answers[q._id] === opt._id}
+                        onChange={() => handleSelect(q._id, opt._id)}
+                        className="w-4 h-4 accent-[var(--primary)]"
+                      />
+                      <span className="text-sm font-medium">{opt.text}</span>
+                    </label>
+                  ))}
+                </div>
+              </section>
+            ))}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-full border border-[#22D3EE] px-4 py-2 text-sm text-[#22D3EE]"
-          >
-            {submitting ? "Submitting..." : "Submit response"}
-          </button>
-        </form>
+            <div className="pt-6">
+              {error && <p className="mb-4 text-sm font-bold text-rose-500">{error}</p>}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full rounded-full bg-[var(--primary)] py-4 text-sm font-black text-white shadow-xl hover:opacity-90 disabled:opacity-50 transition-all"
+              >
+                {submitting ? "Submitting..." : "Submit My Response"}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

@@ -2,12 +2,13 @@ import { useMemo, useState } from "react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../lib/api.js";
 
 const createId = () => Array.from(crypto.getRandomValues(new Uint8Array(12)))
   .map((byte) => byte.toString(16).padStart(2, "0"))
   .join("");
+
 const emptyQuestion = () => ({
   id: createId(),
   text: "",
@@ -23,65 +24,43 @@ function validateQuestions(list) {
   if (!Array.isArray(list) || list.length < 1) {
     return "Add at least one question";
   }
-
   for (let index = 0; index < list.length; index += 1) {
     const question = list[index];
-    if (!question.text || question.text.trim().length === 0) {
-      return `Question ${index + 1} needs text`;
-    }
-    if (!Array.isArray(question.options) || question.options.length < 2) {
-      return `Question ${index + 1} needs at least two options`;
-    }
-    for (let optIndex = 0; optIndex < question.options.length; optIndex += 1) {
-      const option = question.options[optIndex];
-      if (!option.text || option.text.trim().length === 0) {
-        return `Option ${optIndex + 1} in question ${index + 1} is empty`;
-      }
+    if (!question.text || question.text.trim().length === 0) return `Question ${index + 1} needs text`;
+    if (question.options.length < 2) return `Question ${index + 1} needs at least two options`;
+    for (let oIdx = 0; oIdx < question.options.length; oIdx += 1) {
+      if (!question.options[oIdx].text.trim()) return `Option ${oIdx + 1} in question ${index + 1} is empty`;
     }
   }
-
   return null;
 }
 
 function SortableQuestion({ id, title, showRemove, onRemove, children }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id
-  });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition
-  };
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
 
   return (
     <section
       ref={setNodeRef}
       style={style}
-      className={`rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6 ${
-        isDragging ? "opacity-80" : ""
-      }`}
+      className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 ${isDragging ? "opacity-50" : ""}`}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-sm font-semibold text-slate-200">{title}</h3>
-          <p className="text-xs text-slate-500">Minimum two options</p>
-        </div>
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="text-xs uppercase text-slate-400"
-            {...listeners}
-            {...attributes}
-          >
-            Drag
-          </button>
-          {showRemove && (
-            <button type="button" onClick={onRemove} className="text-xs uppercase text-rose-400">
-              Remove
-            </button>
-          )}
+          <div {...listeners} {...attributes} className="cursor-grab p-1 text-[var(--text-muted)] hover:text-[var(--text-main)]">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h16M4 16h16" />
+            </svg>
+          </div>
+          <h3 className="font-display font-bold text-[var(--text-main)]">{title}</h3>
         </div>
+        {showRemove && (
+          <button type="button" onClick={onRemove} className="text-xs font-bold uppercase text-rose-500 hover:opacity-80 transition-opacity">
+            Remove
+          </button>
+        )}
       </div>
-      <div className="mt-4 space-y-4">{children}</div>
+      <div className="space-y-4">{children}</div>
     </section>
   );
 }
@@ -94,124 +73,67 @@ export default function PollBuilder() {
   const [expiresAt, setExpiresAt] = useState("");
   const [requireAuth, setRequireAuth] = useState(false);
   const [allowAnonymous, setAllowAnonymous] = useState(true);
-  const [maxResponses, setMaxResponses] = useState(0);
+  const [isResponseLimited, setIsResponseLimited] = useState(false);
+  const [maxResponses, setMaxResponses] = useState(100);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const questionIds = useMemo(() => questions.map((question) => question.id), [questions]);
+  const questionIds = useMemo(() => questions.map((q) => q.id), [questions]);
 
   const addQuestion = () => setQuestions((prev) => [...prev, emptyQuestion()]);
-  const removeQuestion = (index) => {
-    setQuestions((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const updateQuestion = (index, updates) => {
-    setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, ...updates } : q)));
-  };
+  const removeQuestion = (index) => setQuestions((prev) => prev.filter((_, i) => i !== index));
+  const updateQuestion = (index, updates) => setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, ...updates } : q)));
 
   const updateOption = (qIndex, oIndex, value) => {
-    setQuestions((prev) =>
-      prev.map((q, i) => {
-        if (i !== qIndex) return q;
-        const options = q.options.map((opt, idx) =>
-          idx === oIndex ? { ...opt, text: value } : opt
-        );
-        return { ...q, options };
-      })
-    );
+    setQuestions((prev) => prev.map((q, i) => {
+      if (i !== qIndex) return q;
+      const options = q.options.map((opt, idx) => idx === oIndex ? { ...opt, text: value } : opt);
+      return { ...q, options };
+    }));
   };
 
   const addOption = (qIndex) => {
-    setQuestions((prev) =>
-      prev.map((q, i) =>
-        i === qIndex ? { ...q, options: [...q.options, { id: createId(), text: "" }] } : q
-      )
-    );
+    setQuestions((prev) => prev.map((q, i) => i === qIndex ? { ...q, options: [...q.options, { id: createId(), text: "" }] } : q));
   };
 
   const removeOption = (qIndex, oIndex) => {
-    setQuestions((prev) =>
-      prev.map((q, i) => {
-        if (i !== qIndex) return q;
-        const options = q.options.filter((_, idx) => idx !== oIndex);
-        return { ...q, options };
-      })
-    );
+    setQuestions((prev) => prev.map((q, i) => {
+      if (i !== qIndex) return q;
+      return { ...q, options: q.options.filter((_, idx) => idx !== oIndex) };
+    }));
   };
 
-  const onSubmit = async (event) => {
-    event.preventDefault();
+  const onSubmit = async (e) => {
+    e.preventDefault();
     setError("");
+    if (title.trim().length < 3) return setError("Title must be at least 3 characters");
 
-    const trimmedTitle = title.trim();
-    if (trimmedTitle.length < 3) {
-      setError("Title must be at least 3 characters");
-      return;
-    }
-
-    if (expiresAt) {
-      const expires = new Date(expiresAt);
-      if (Number.isNaN(expires.getTime()) || expires.getTime() <= Date.now()) {
-        setError("Expiry must be in the future");
-        return;
-      }
-    }
-
-    if (Number.isNaN(maxResponses) || maxResponses < 0) {
-      setError("Max responses must be 0 or higher");
-      return;
-    }
-
-    const questionError = validateQuestions(questions);
-    if (questionError) {
-      setError(questionError);
-      return;
-    }
-
-    for (let index = 0; index < questions.length; index += 1) {
-      const question = questions[index];
-      if (question.conditionalLogic?.enabled) {
-        const showIf = question.conditionalLogic.showIf || {};
-        if (!showIf.questionId || !showIf.selectedOptionId) {
-          setError(`Conditional logic for question ${index + 1} is incomplete`);
-          return;
-        }
-      }
-    }
+    const qError = validateQuestions(questions);
+    if (qError) return setError(qError);
 
     const payload = {
-      title: trimmedTitle,
+      title,
       description,
       allowAnonymous: requireAuth ? false : allowAnonymous,
       requireAuth,
       expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
       settings: {
-        maxResponses: maxResponses || 0
+        maxResponses: isResponseLimited ? maxResponses : 0
       },
-      questions: questions.map((q, index) => {
-        return {
+      questions: questions.map((q, index) => ({
         _id: q.id,
         text: q.text,
         required: q.required,
         order: index,
         options: q.options.map((opt, oIndex) => ({ _id: opt.id, text: opt.text, order: oIndex })),
-        conditionalLogic: q.conditionalLogic?.enabled
-          ? {
-              enabled: true,
-              showIf: {
-                questionId: q.conditionalLogic.showIf.questionId,
-                selectedOptionId: q.conditionalLogic.showIf.selectedOptionId
-              }
-            }
-          : { enabled: false }
-        };
-      })
+        conditionalLogic: q.conditionalLogic?.enabled ? q.conditionalLogic : { enabled: false }
+      }))
     };
 
     try {
       setSaving(true);
-      const response = await api.post("/api/polls", payload);
-      navigate("/dashboard", { state: { createdPoll: response.data } });
+      const res = await api.post("/api/polls", payload);
+      navigate("/dashboard", { state: { createdPoll: res.data } });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create poll");
     } finally {
@@ -220,264 +142,178 @@ export default function PollBuilder() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
-      <div className="mx-auto max-w-4xl px-6 py-10">
-        <h1 className="text-2xl font-semibold text-slate-50">Create a poll</h1>
-        <p className="mt-2 text-sm text-slate-400">
-          Build your draft. Activation comes next once questions are finalized.
-        </p>
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text-main)] theme-transition pb-20">
+      <header className="border-b border-[var(--border)] bg-[var(--surface)] mb-10">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
+          <Link to="/dashboard" className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="text-sm font-semibold">Back to Dashboard</span>
+          </Link>
+          <img src="/pollforge-logo.png" alt="Logo" className="h-8 w-8" />
+        </div>
+      </header>
 
-        <form onSubmit={onSubmit} className="mt-8 space-y-6">
-          <section className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6">
-            <h2 className="text-sm font-semibold text-slate-200">Poll details</h2>
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className="text-xs uppercase text-slate-500">Title</label>
-                <input
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  className="mt-2 w-full rounded-lg border border-[#1E1E2E] bg-transparent px-3 py-2 text-sm"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-xs uppercase text-slate-500">Description</label>
-                <textarea
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  rows={3}
-                  className="mt-2 w-full rounded-lg border border-[#1E1E2E] bg-transparent px-3 py-2 text-sm"
-                />
-              </div>
+      <div className="mx-auto max-w-3xl px-6">
+        <h1 className="font-display text-4xl font-black">Create a New Poll</h1>
+        <p className="mt-2 text-[var(--text-muted)]">Design your survey and set up your rules.</p>
+
+        <form onSubmit={onSubmit} className="mt-12 space-y-8">
+          {/* General Details */}
+          <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 space-y-6">
+            <div>
+              <label className="text-[10px] uppercase tracking-widest font-black text-[var(--text-muted)] mb-2 block">Poll Title</label>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="What's your question?"
+                className="w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-3 text-lg font-bold focus:border-[var(--primary)] outline-none transition-colors"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-widest font-black text-[var(--text-muted)] mb-2 block">Description (Optional)</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                placeholder="Provide some context..."
+                className="w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-3 text-sm focus:border-[var(--primary)] outline-none transition-colors"
+              />
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6">
-            <h2 className="text-sm font-semibold text-slate-200">Settings</h2>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="text-xs uppercase text-slate-500">Expiry</label>
-                <input
-                  type="datetime-local"
-                  value={expiresAt}
-                  onChange={(event) => setExpiresAt(event.target.value)}
-                  className="mt-2 w-full rounded-lg border border-[#1E1E2E] bg-transparent px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs uppercase text-slate-500">Max responses</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={maxResponses}
-                  onChange={(event) => setMaxResponses(Number(event.target.value))}
-                  className="mt-2 w-full rounded-lg border border-[#1E1E2E] bg-transparent px-3 py-2 text-sm"
-                />
-                <p className="mt-1 text-xs text-slate-500">0 means unlimited.</p>
-              </div>
-            </div>
-            <div className="mt-4 space-y-3 text-xs text-slate-400">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={requireAuth}
-                  onChange={(event) => {
-                    const nextValue = event.target.checked;
-                    setRequireAuth(nextValue);
-                    if (nextValue) {
-                      setAllowAnonymous(false);
-                    }
-                  }}
-                />
-                Require authentication to respond
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={allowAnonymous}
-                  onChange={(event) => setAllowAnonymous(event.target.checked)}
-                  disabled={requireAuth}
-                />
-                Allow anonymous responses
-              </label>
-            </div>
-          </section>
-
-          <DndContext
-            collisionDetection={closestCenter}
-            onDragEnd={(event) => {
-              const { active, over } = event;
-              if (!over || active.id === over.id) return;
-              setQuestions((prev) => {
-                const oldIndex = prev.findIndex((question) => question.id === active.id);
-                const newIndex = prev.findIndex((question) => question.id === over.id);
-                return arrayMove(prev, oldIndex, newIndex);
-              });
-            }}
-          >
-            <SortableContext items={questionIds} strategy={verticalListSortingStrategy}>
-              {questions.map((question, qIndex) => (
-                <SortableQuestion
-                  key={question.id}
-                  id={question.id}
-                  title={`Question ${qIndex + 1}`}
-                  showRemove={questions.length > 1}
-                  onRemove={() => removeQuestion(qIndex)}
-                >
+          {/* Configuration */}
+          <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8">
+            <h3 className="font-display text-lg font-bold mb-6">Rules & Logic</h3>
+            <div className="grid gap-8 md:grid-cols-2">
+              <div className="space-y-4">
+                <label className="flex items-center gap-3 cursor-pointer group">
                   <input
-                    value={question.text}
-                    onChange={(event) => updateQuestion(qIndex, { text: event.target.value })}
-                    placeholder="Question text"
-                    className="w-full rounded-lg border border-[#1E1E2E] bg-transparent px-3 py-2 text-sm"
-                    required
+                    type="checkbox"
+                    checked={requireAuth}
+                    onChange={(e) => {
+                      setRequireAuth(e.target.checked);
+                      if (e.target.checked) setAllowAnonymous(false);
+                    }}
+                    className="accent-[var(--primary)]"
                   />
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <span className="text-sm text-[var(--text-main)] group-hover:text-[var(--primary)] transition-colors">Require authentication</span>
+                </label>
+                <label className={`flex items-center gap-3 cursor-pointer group ${requireAuth ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={allowAnonymous}
+                    onChange={(e) => setAllowAnonymous(e.target.checked)}
+                    disabled={requireAuth}
+                    className="accent-[var(--primary)]"
+                  />
+                  <span className="text-sm text-[var(--text-main)] group-hover:text-[var(--primary)] transition-colors">Allow anonymous responses</span>
+                </label>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="flex items-center gap-3 cursor-pointer group mb-3">
                     <input
                       type="checkbox"
-                      checked={question.required}
-                      onChange={(event) => updateQuestion(qIndex, { required: event.target.checked })}
+                      checked={isResponseLimited}
+                      onChange={(e) => setIsResponseLimited(e.target.checked)}
+                      className="accent-[var(--primary)]"
                     />
-                    Required
-                  </div>
-
-                  <div className="space-y-3">
-                    {question.options.map((option, oIndex) => (
-                      <div key={`option-${question.id}-${oIndex}`} className="flex items-center gap-3">
-                        <input
-                          value={option.text}
-                          onChange={(event) => updateOption(qIndex, oIndex, event.target.value)}
-                          placeholder={`Option ${oIndex + 1}`}
-                          className="w-full rounded-lg border border-[#1E1E2E] bg-transparent px-3 py-2 text-sm"
-                          required
-                        />
-                        {question.options.length > 2 && (
-                          <button
-                            type="button"
-                            onClick={() => removeOption(qIndex, oIndex)}
-                            className="text-xs uppercase text-rose-400"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => addOption(qIndex)}
-                      className="text-xs uppercase text-[#22D3EE]"
-                    >
-                      Add option
-                    </button>
-                  </div>
-
-                  {qIndex > 0 && (
-                    <div className="mt-4 rounded-lg border border-[#1E1E2E] bg-[#0F0F15] p-3">
-                      <label className="flex items-center gap-2 text-xs text-slate-400">
-                        <input
-                          type="checkbox"
-                          checked={question.conditionalLogic?.enabled}
-                          onChange={(event) =>
-                            updateQuestion(qIndex, {
-                              conditionalLogic: {
-                                ...question.conditionalLogic,
-                                enabled: event.target.checked
-                              }
-                            })
-                          }
-                        />
-                        Show only if
-                      </label>
-
-                      {question.conditionalLogic?.enabled && (
-                        <div className="mt-3 grid gap-3 md:grid-cols-2">
-                          <div>
-                            <label className="text-[11px] uppercase text-slate-500">
-                              Question
-                            </label>
-                            <select
-                              value={question.conditionalLogic.showIf.questionId}
-                              onChange={(event) =>
-                                updateQuestion(qIndex, {
-                                  conditionalLogic: {
-                                    ...question.conditionalLogic,
-                                    showIf: {
-                                      ...question.conditionalLogic.showIf,
-                                      questionId: event.target.value,
-                                      selectedOptionId: ""
-                                    }
-                                  }
-                                })
-                              }
-                              className="mt-2 w-full rounded-lg border border-[#1E1E2E] bg-transparent px-3 py-2 text-xs"
-                            >
-                              <option value="">Select question</option>
-                              {questions.slice(0, qIndex).map((prevQuestion) => (
-                                <option key={prevQuestion.id} value={prevQuestion.id}>
-                                  {prevQuestion.text || "Untitled question"}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-[11px] uppercase text-slate-500">
-                              Option
-                            </label>
-                            <select
-                              value={question.conditionalLogic.showIf.selectedOptionId}
-                              onChange={(event) =>
-                                updateQuestion(qIndex, {
-                                  conditionalLogic: {
-                                    ...question.conditionalLogic,
-                                    showIf: {
-                                      ...question.conditionalLogic.showIf,
-                                      selectedOptionId: event.target.value
-                                    }
-                                  }
-                                })
-                              }
-                              className="mt-2 w-full rounded-lg border border-[#1E1E2E] bg-transparent px-3 py-2 text-xs"
-                              disabled={!question.conditionalLogic.showIf.questionId}
-                            >
-                              <option value="">Select option</option>
-                              {questions
-                                .slice(0, qIndex)
-                                .find(
-                                  (prevQuestion) =>
-                                    prevQuestion.id === question.conditionalLogic.showIf.questionId
-                                )
-                                ?.options.map((option, optionIndex) => (
-                                  <option key={option.id} value={option.id}>
-                                    {option.text || `Option ${optionIndex + 1}`}
-                                  </option>
-                                ))}
-                            </select>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <span className="text-sm font-bold text-[var(--text-main)]">Limit total responses</span>
+                  </label>
+                  {isResponseLimited && (
+                    <input
+                      type="number"
+                      min="1"
+                      value={maxResponses}
+                      onChange={(e) => setMaxResponses(Number(e.target.value))}
+                      className="w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-2 text-sm focus:border-[var(--primary)]"
+                    />
                   )}
-                </SortableQuestion>
-              ))}
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest font-black text-[var(--text-muted)] mb-2 block">Expiration Date</label>
+                  <input
+                    type="datetime-local"
+                    value={expiresAt}
+                    onChange={(e) => setExpiresAt(e.target.value)}
+                    className="w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-2 text-sm focus:border-[var(--primary)]"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Questions */}
+          <DndContext collisionDetection={closestCenter} onDragEnd={(e) => {
+            const { active, over } = e;
+            if (!over || active.id === over.id) return;
+            setQuestions((prev) => {
+              const oldIndex = prev.findIndex((q) => q.id === active.id);
+              const newIndex = prev.findIndex((q) => q.id === over.id);
+              return arrayMove(prev, oldIndex, newIndex);
+            });
+          }}>
+            <SortableContext items={questionIds} strategy={verticalListSortingStrategy}>
+              <div className="space-y-6">
+                {questions.map((q, qIndex) => (
+                  <SortableQuestion key={q.id} id={q.id} title={`Question ${qIndex + 1}`} showRemove={questions.length > 1} onRemove={() => removeQuestion(qIndex)}>
+                    <input
+                      value={q.text}
+                      onChange={(e) => updateQuestion(qIndex, { text: e.target.value })}
+                      placeholder="Type your question here..."
+                      className="w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-3 text-sm font-semibold focus:border-[var(--primary)]"
+                      required
+                    />
+                    <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                      <input type="checkbox" checked={q.required} onChange={(e) => updateQuestion(qIndex, { required: e.target.checked })} />
+                      Required question
+                    </div>
+                    
+                    <div className="space-y-3 mt-4">
+                      {q.options.map((opt, oIndex) => (
+                        <div key={opt.id} className="flex items-center gap-3">
+                          <input
+                            value={opt.text}
+                            onChange={(e) => updateOption(qIndex, oIndex, e.target.value)}
+                            placeholder={`Option ${oIndex + 1}`}
+                            className="flex-1 rounded-xl border border-[var(--border)] bg-transparent px-4 py-2 text-sm focus:border-[var(--primary)]"
+                            required
+                          />
+                          {q.options.length > 2 && (
+                            <button type="button" onClick={() => removeOption(qIndex, oIndex)} className="p-2 text-rose-500 hover:bg-rose-500/5 rounded-lg transition-colors">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => addOption(qIndex)} className="text-xs font-bold text-[var(--primary)] hover:opacity-80">+ Add Option</button>
+                    </div>
+                  </SortableQuestion>
+                ))}
+              </div>
             </SortableContext>
           </DndContext>
 
-          {error && <p className="text-sm text-rose-400">{error}</p>}
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={addQuestion}
-              className="rounded-full border border-[#1E1E2E] px-4 py-2 text-sm text-slate-200"
-            >
-              Add question
+          <div className="pt-6 flex items-center justify-between border-t border-[var(--border)]">
+            <button type="button" onClick={addQuestion} className="rounded-full border border-[var(--primary)] px-6 py-2 text-sm font-bold text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-colors">
+              Add Question
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-full border border-[#22D3EE] px-4 py-2 text-sm text-[#22D3EE]"
-            >
-              {saving ? "Saving..." : "Save draft"}
-            </button>
+            <div className="flex gap-4">
+              {error && <span className="text-sm text-rose-500 flex items-center">{error}</span>}
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-full bg-[var(--primary)] px-8 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Poll Draft"}
+              </button>
+            </div>
           </div>
         </form>
       </div>

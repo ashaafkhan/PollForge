@@ -20,61 +20,63 @@ export default function ResultsDisplay({ pollId, pollTitle }) {
   }, [pollId]);
 
   if (loading) {
-    return <div className="text-sm text-slate-400">Loading results...</div>;
+    return <div className="text-sm text-[var(--text-muted)] animate-pulse">Loading results...</div>;
   }
 
   if (!analytics) {
-    return <div className="text-sm text-rose-400">Unable to load results.</div>;
+    return <div className="text-sm text-rose-500">Unable to load results.</div>;
   }
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6">
-        <h3 className="text-sm font-semibold text-slate-200">Participation Overview</h3>
-        <div className="mt-4 flex gap-6">
+    <div className="space-y-10">
+      <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-sm">
+        <h3 className="text-[10px] uppercase tracking-widest font-black text-[var(--text-muted)] mb-6">Participation Overview</h3>
+        <div className="flex flex-wrap gap-12">
           <div>
-            <p className="text-xs uppercase text-slate-500">Total Responses</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-50">
+            <p className="text-sm font-medium text-[var(--text-muted)]">Total Responses</p>
+            <p className="mt-1 text-4xl font-black text-[var(--text-main)]">
               {analytics.totalResponses}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase text-slate-500">Completion Rate</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-50">
+            <p className="text-sm font-medium text-[var(--text-muted)]">Completion Rate</p>
+            <p className="mt-1 text-4xl font-black text-[var(--text-main)]">
               {analytics.completionRate}%
             </p>
           </div>
         </div>
       </div>
 
-      <div className="space-y-6">
-        <h3 className="text-lg font-semibold text-slate-50">Question Breakdown</h3>
-        {analytics.questions.map((q, idx) => (
-          <section
-            key={q.questionId}
-            className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6"
-          >
-            <h4 className="text-sm font-semibold text-slate-200">
-              {idx + 1}. {q.text}
-            </h4>
-            <div className="mt-4 space-y-3">
-              {q.options.map((opt) => (
-                <div key={opt.optionId}>
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>{opt.text}</span>
-                    <span>{opt.percentage}% ({opt.count})</span>
+      <div className="space-y-8">
+        <h3 className="font-display text-2xl font-bold">Question Breakdown</h3>
+        <div className="grid gap-6">
+          {analytics.questions.map((q, idx) => (
+            <section
+              key={q.questionId}
+              className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-sm"
+            >
+              <h4 className="text-lg font-bold mb-6">
+                <span className="text-[var(--primary)] mr-2">{idx + 1}.</span> {q.text}
+              </h4>
+              <div className="space-y-5">
+                {q.options.map((opt) => (
+                  <div key={opt.optionId}>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="font-medium">{opt.text}</span>
+                      <span className="text-[var(--text-muted)] font-mono">{opt.percentage}% ({opt.count})</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-[var(--border)] overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] transition-all duration-700"
+                        style={{ width: `${opt.percentage}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="mt-1 h-2 w-full rounded-full bg-[#1E1E2E]">
-                    <div
-                      className="h-2 rounded-full bg-[#22D3EE]"
-                      style={{ width: `${opt.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        ))}
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ function ThemeToggle() {
     <button
       onClick={toggleTheme}
       title="Toggle theme"
-      className="rounded-full p-2 text-slate-400 hover:bg-[#1E1E2E] hover:text-slate-200 transition-colors"
+      className="rounded-full p-2 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-main)] transition-colors"
     >
       {theme === "dark" ? (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -32,10 +32,10 @@ function ThemeToggle() {
 }
 
 const STATUS_COLOR = {
-  draft: "text-slate-400",
-  active: "text-[#22D3EE]",
-  expired: "text-amber-400",
-  published: "text-[#10B981]",
+  draft: "text-[var(--text-muted)]",
+  active: "text-[var(--primary)]",
+  expired: "text-amber-500",
+  published: "text-emerald-500",
 };
 
 export default function Dashboard() {
@@ -89,7 +89,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text-main)] theme-transition">
       <ConfirmModal
         isOpen={!!deleteTarget}
         title="Delete poll?"
@@ -100,26 +100,25 @@ export default function Dashboard() {
         danger
       />
 
-      <header className="border-b border-[#1E1E2E] bg-[#13131A]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Creator dashboard</p>
-            <h1 className="font-display text-2xl font-bold text-slate-50">
-              Welcome back, {user?.name?.split(" ")[0] || "Creator"}
-            </h1>
-          </div>
+      <header className="border-b border-[var(--border)] bg-[var(--surface)]">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
+            <img src="/pollforge-logo.png" alt="Logo" className="h-8 w-8" />
+            <h1 className="font-display text-xl font-bold gradient-text hidden sm:block">PollForge</h1>
+          </div>
+          <div className="flex items-center gap-4">
             <ThemeToggle />
             <NotificationBell />
             <Link
               to="/polls/new"
-              className="rounded-full border border-[#22D3EE] px-4 py-2 text-sm text-[#22D3EE] hover:bg-[#22D3EE]/10 transition-colors"
+              className="rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
             >
-              + New poll
+              + Create Poll
             </Link>
+            <div className="h-8 w-px bg-[var(--border)]" />
             <button
               onClick={handleLogout}
-              className="rounded-full border border-[#1E1E2E] px-4 py-2 text-sm text-slate-300 hover:bg-[#1E1E2E] transition-colors"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
             >
               Log out
             </button>
@@ -127,75 +126,77 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-6xl gap-6 px-6 py-10 md:grid-cols-3">
+      <main className="mx-auto grid max-w-6xl gap-8 px-6 py-10 md:grid-cols-3">
         {/* Poll list */}
-        <section className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6 md:col-span-2">
-          <h2 className="font-display text-lg font-semibold text-slate-50">Your polls</h2>
+        <section className="md:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-2xl font-bold">Your Polls</h2>
+            <p className="text-sm text-[var(--text-muted)]">{polls.length} total</p>
+          </div>
+
           {location.state?.createdPoll && (
-            <p className="mt-2 text-sm text-emerald-400">
-              ✓ Draft created: {location.state.createdPoll.title}
-            </p>
+            <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-sm text-emerald-500">
+              ✓ Draft created successfully: <strong>{location.state.createdPoll.title}</strong>
+            </div>
           )}
 
           {loading ? (
-            <div className="mt-4 space-y-3">
+            <div className="space-y-4">
               <SkeletonCard />
               <SkeletonCard />
               <SkeletonCard />
             </div>
           ) : polls.length === 0 ? (
-            <div className="mt-6 flex flex-col items-center rounded-xl border border-dashed border-[#1E1E2E] py-14 text-center">
-              <span className="text-4xl">📊</span>
-              <h3 className="mt-4 text-base font-semibold text-slate-300">No polls yet</h3>
-              <p className="mt-1 text-sm text-slate-500">Create your first poll and start collecting responses.</p>
+            <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-[var(--border)] py-20 text-center">
+              <div className="mb-4 text-5xl opacity-20">📊</div>
+              <h3 className="text-lg font-bold">No polls yet</h3>
+              <p className="mt-1 text-[var(--text-muted)]">Create your first poll and start collecting insights.</p>
               <Link
                 to="/polls/new"
-                className="mt-4 rounded-full border border-[#22D3EE] px-4 py-2 text-sm text-[#22D3EE] hover:bg-[#22D3EE]/10 transition-colors"
+                className="mt-6 rounded-full border border-[var(--primary)] px-6 py-2 text-sm text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-colors"
               >
                 Create your first poll →
               </Link>
             </div>
           ) : (
-            <div className="mt-4 space-y-3">
+            <div className="space-y-4">
               {polls.map((poll) => (
                 <div
                   key={poll._id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#1E1E2E] bg-[#0F0F15] px-4 py-3"
+                  className="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 py-5 hover:border-[var(--primary)]/30 transition-all shadow-sm"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-100">{poll.title}</p>
-                    <p className="text-xs text-slate-500">/{poll.slug}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-lg font-bold">{poll.title}</p>
+                    <p className="text-xs text-[var(--text-muted)] font-mono">/{poll.slug}</p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`text-xs uppercase font-medium ${STATUS_COLOR[poll.status] || "text-slate-400"}`}>
+                  <div className="flex items-center gap-4">
+                    <span className={`text-[10px] uppercase tracking-widest font-black ${STATUS_COLOR[poll.status] || "text-[var(--text-muted)]"}`}>
                       {poll.status}
                     </span>
-                    <Link to={`/polls/${poll._id}/edit`} className="text-xs text-slate-400 hover:text-slate-200 transition-colors">
-                      Edit
-                    </Link>
-                    <Link to={`/polls/${poll._id}/analytics`} className="text-xs text-[#22D3EE] hover:underline">
-                      Analytics
-                    </Link>
-                    {poll.status === "draft" && (
-                      <button
-                        onClick={() => activatePoll(poll._id)}
-                        disabled={actionLoading === poll._id}
-                        className="text-xs text-[#22D3EE] hover:underline disabled:opacity-50"
-                      >
-                        {actionLoading === poll._id ? "Activating…" : "Activate"}
-                      </button>
-                    )}
-                    {poll.status === "published" && (
-                      <Link to={`/p/${poll.slug}`} className="text-xs text-[#10B981] hover:underline">
-                        View Results
+                    <div className="h-4 w-px bg-[var(--border)]" />
+                    <div className="flex items-center gap-3">
+                      <Link to={`/polls/${poll._id}/edit`} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-main)]">
+                        Edit
                       </Link>
-                    )}
-                    <button
-                      onClick={() => setDeleteTarget({ id: poll._id, title: poll.title })}
-                      className="text-xs text-rose-500 hover:underline"
-                    >
-                      Delete
-                    </button>
+                      <Link to={`/polls/${poll._id}/analytics`} className="text-sm text-[var(--primary)] font-semibold">
+                        Results
+                      </Link>
+                      {poll.status === "draft" && (
+                        <button
+                          onClick={() => activatePoll(poll._id)}
+                          disabled={actionLoading === poll._id}
+                          className="text-sm text-[var(--primary)] hover:underline disabled:opacity-50"
+                        >
+                          {actionLoading === poll._id ? "..." : "Activate"}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setDeleteTarget({ id: poll._id, title: poll.title })}
+                        className="text-sm text-rose-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -204,37 +205,46 @@ export default function Dashboard() {
         </section>
 
         {/* Profile aside */}
-        <aside className="space-y-4 self-start">
-          <div className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6">
-            <h3 className="font-display text-sm font-semibold text-slate-200">Profile snapshot</h3>
-            <div className="mt-4 space-y-2 text-sm text-slate-400">
-              <p>Score: <span className="font-mono text-[#22D3EE]">{user?.creatorScore ?? 0}</span></p>
-              <p>Polls created: <span className="font-mono">{user?.pollsCreated ?? 0}</span></p>
-              <p>Total responses: <span className="font-mono">{user?.totalResponsesCollected ?? 0}</span></p>
+        <aside className="space-y-6">
+          <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-sm">
+            <h3 className="font-display text-lg font-bold mb-6">Profile Summary</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-[var(--text-muted)]">Creator Score</span>
+                <span className="font-mono text-[var(--primary)] font-bold">{user?.creatorScore ?? 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-[var(--text-muted)]">Total Polls</span>
+                <span className="font-mono">{user?.pollsCreated ?? 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-[var(--text-muted)]">Responses</span>
+                <span className="font-mono">{user?.totalResponsesCollected ?? 0}</span>
+              </div>
             </div>
 
-            <div className="mt-5 border-t border-[#1E1E2E] pt-4">
-              <h4 className="text-xs font-semibold uppercase text-slate-500">Badges</h4>
-              <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-8 border-t border-[var(--border)] pt-6">
+              <h4 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mb-4">Earned Badges</h4>
+              <div className="flex flex-wrap gap-2">
                 {user?.badges?.length > 0 ? (
                   user.badges.map((badge, i) => (
-                    <span key={i} className="rounded bg-[#1E1E2E] px-2 py-1 text-xs text-[#22D3EE]">
+                    <span key={i} className="rounded-full bg-[var(--primary-glow)] border border-[var(--primary)]/20 px-3 py-1 text-[10px] text-[var(--primary)] font-bold">
                       🏆 {badge}
                     </span>
                   ))
                 ) : (
-                  <p className="text-xs text-slate-600">No badges yet.</p>
+                  <p className="text-xs text-[var(--text-muted)] italic">Participate to earn badges.</p>
                 )}
               </div>
             </div>
 
             <Link
               to="/profile"
-              className="mt-5 block text-center text-xs text-slate-500 hover:text-[#22D3EE] transition-colors"
+              className="mt-8 block text-center text-xs font-bold text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
             >
-              View full profile →
+              View Full Profile →
             </Link>
-          </div>
+          </section>
         </aside>
       </main>
     </div>

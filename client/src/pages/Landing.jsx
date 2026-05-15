@@ -1,80 +1,44 @@
 import { Link } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 const FEATURES = [
   {
     icon: "⚡",
-    title: "Real-Time Analytics",
-    desc: "Live dashboards update as responses flow in — no refresh needed. Powered by Socket.io.",
+    title: "Real-Time Interaction",
+    desc: "Engage your audience with live results that update instantly. No more refreshing pages.",
     color: "#22D3EE",
   },
   {
-    icon: "🤖",
-    title: "AI-Powered Insights",
-    desc: "Claude AI analyzes your poll data and surfaces key findings, surprising patterns, and actionable takeaways.",
+    icon: "🤝",
+    title: "Seamless Collaboration",
+    desc: "Build polls with your team and share results privately or publicly with one click.",
     color: "#6366F1",
   },
   {
     icon: "🔀",
-    title: "Conditional Skip Logic",
-    desc: "Show questions dynamically based on previous answers. Build intelligent, branching surveys.",
+    title: "Smart Conditional Logic",
+    desc: "Create dynamic surveys that adapt to respondent answers for a personalized experience.",
     color: "#10B981",
   },
   {
-    icon: "🎭",
-    title: "Results Theater",
-    desc: "Publish beautiful public results pages with animated charts and AI-generated summaries.",
+    icon: "📱",
+    title: "Multi-Channel Sharing",
+    desc: "Share your polls via QR codes, direct links, or embed them directly into your website.",
     color: "#F59E0B",
   },
   {
-    icon: "🏆",
-    title: "Creator Gamification",
-    desc: "Earn score points, unlock badges, and grow your creator reputation with every poll you run.",
+    icon: "📈",
+    title: "Powerful Analytics",
+    desc: "Visualize your data with professional charts and deep-dive into respondent demographics.",
     color: "#EC4899",
   },
   {
-    icon: "📱",
-    title: "QR & Embed Share",
-    desc: "Generate QR codes for physical events or embed polls directly into any website with one line of HTML.",
+    icon: "🛡️",
+    title: "Secure & Reliable",
+    desc: "Enterprise-grade security with IP-based rate limiting and optional authentication.",
     color: "#22D3EE",
   },
 ];
-
-const STATS = [
-  { value: "12K+", label: "Responses Collected" },
-  { value: "500+", label: "Polls Created" },
-  { value: "99.9%", label: "Uptime" },
-];
-
-function AnimatedCounter({ target }) {
-  const [count, setCount] = useState(0);
-  const hasRun = useRef(false);
-
-  useEffect(() => {
-    if (hasRun.current) return;
-    hasRun.current = true;
-    const num = parseInt(target.replace(/\D/g, ""), 10);
-    const suffix = target.replace(/[\d.]/g, "");
-    let start = 0;
-    const step = Math.ceil(num / 40);
-    const interval = setInterval(() => {
-      start += step;
-      if (start >= num) {
-        setCount(num);
-        clearInterval(interval);
-      } else {
-        setCount(start);
-      }
-    }, 30);
-    return () => clearInterval(interval);
-  }, [target]);
-
-  return (
-    <span className="font-display text-4xl font-black gradient-text">
-      {count}{target.replace(/[\d]/g, "")}
-    </span>
-  );
-}
 
 export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
@@ -86,30 +50,28 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text-main)] theme-transition">
       {/* ── Navbar ──────────────────────────────────── */}
       <nav
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
-          scrolled ? "bg-[#13131A]/80 backdrop-blur-md border-b border-[#1E1E2E]" : ""
+          scrolled ? "bg-[var(--surface)]/80 backdrop-blur-md border-b border-[var(--border)]" : ""
         }`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <img src="/pollforge-logo.png" alt="PollForge Logo" className="h-8 w-8" />
             <span className="font-display text-xl font-black gradient-text">PollForge</span>
-            <span className="hidden text-xs uppercase tracking-widest text-slate-600 sm:block">
-              Intelligence
-            </span>
           </div>
           <div className="flex items-center gap-3">
             <Link
               to="/login"
-              className="rounded-full px-4 py-2 text-sm text-slate-400 hover:text-slate-100 transition-colors"
+              className="rounded-full px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
             >
               Log in
             </Link>
             <Link
               to="/register"
-              className="rounded-full border border-[#22D3EE] px-4 py-2 text-sm text-[#22D3EE] hover:bg-[#22D3EE]/10 transition-colors"
+              className="rounded-full border border-[var(--primary)] px-4 py-2 text-sm text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-colors"
             >
               Get Started
             </Link>
@@ -118,116 +80,105 @@ export default function Landing() {
       </nav>
 
       {/* ── Hero ────────────────────────────────────── */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 pt-20 text-center">
+      <section className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden px-6 pt-20 text-center">
         {/* Background mesh */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[#6366F1]/10 blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 h-64 w-64 rounded-full bg-[#22D3EE]/10 blur-3xl" />
+          <div className="absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[var(--accent)]/10 blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 h-64 w-64 rounded-full bg-[var(--primary)]/10 blur-3xl" />
         </div>
 
         <div className="relative animate-fade-in-up">
-          <p className="mb-4 inline-block rounded-full border border-[#22D3EE]/20 bg-[#22D3EE]/5 px-4 py-1 text-xs uppercase tracking-widest text-[#22D3EE]">
-            Built to Win · Hackathon Edition
+          <p className="mb-4 inline-block rounded-full border border-[var(--primary)]/20 bg-[var(--primary)]/5 px-4 py-1 text-xs uppercase tracking-widest text-[var(--primary)]">
+            Modern Survey Platform
           </p>
-          <h1 className="font-display text-5xl font-black leading-tight text-slate-50 sm:text-7xl">
-            Not just polls.
+          <h1 className="font-display text-5xl font-black leading-tight sm:text-7xl">
+            Collect opinions.
             <br />
-            <span className="gradient-text">Intelligence.</span>
+            <span className="gradient-text">Drive Decisions.</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-lg text-slate-400">
-            Real-time analytics, AI-powered insights, conditional logic, and a creator
-            reputation system — all in one platform.
+          <p className="mx-auto mt-6 max-w-xl text-lg text-[var(--text-muted)]">
+            Build beautiful, real-time polls in seconds. Analyze results with professional tools 
+            and share them with anyone, anywhere.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               to="/register"
-              className="rounded-full bg-gradient-to-r from-[#6366F1] to-[#22D3EE] px-6 py-3 text-sm font-semibold text-white shadow-lg hover:opacity-90 transition-opacity"
+              className="rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--primary)] px-8 py-4 text-sm font-semibold text-white shadow-lg hover:opacity-90 transition-opacity"
             >
-              Start for free
+              Create Your First Poll
             </Link>
             <a
               href="#features"
-              className="rounded-full border border-[#1E1E2E] px-6 py-3 text-sm text-slate-300 hover:bg-[#1E1E2E] transition-colors"
+              className="rounded-full border border-[var(--border)] px-8 py-4 text-sm text-[var(--text-main)] hover:bg-[var(--surface-hover)] transition-colors"
             >
-              See features ↓
+              Explore Features
             </a>
           </div>
         </div>
       </section>
 
-      {/* ── Stats strip ─────────────────────────────── */}
-      <section className="border-y border-[#1E1E2E] bg-[#13131A]">
-        <div className="mx-auto grid max-w-4xl grid-cols-3 divide-x divide-[#1E1E2E] px-6 py-10">
-          {STATS.map((stat) => (
-            <div key={stat.label} className="flex flex-col items-center px-6 text-center">
-              <AnimatedCounter target={stat.value} />
-              <p className="mt-1 text-xs uppercase tracking-wider text-slate-500">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ── Feature grid ────────────────────────────── */}
       <section id="features" className="mx-auto max-w-6xl px-6 py-24">
-        <div className="mb-12 text-center">
-          <h2 className="font-display text-3xl font-bold text-slate-50">
-            Everything you need to run smarter polls
+        <div className="mb-16 text-center">
+          <h2 className="font-display text-4xl font-bold">
+            Everything you need for better feedback
           </h2>
-          <p className="mt-3 text-slate-500">
-            Six layers of depth — each one a differentiator.
+          <p className="mt-4 text-[var(--text-muted)] max-w-2xl mx-auto">
+            Powerful tools designed for teams that value real-time insights and professional presentation.
           </p>
         </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => (
             <div
               key={f.title}
-              className="group rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-6 transition-all duration-300 hover:border-[#22D3EE]/30 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(34,211,238,0.05)] animate-fade-in-up"
+              className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 transition-all duration-300 hover:border-[var(--primary)]/30 hover:-translate-y-1 hover:shadow-xl animate-fade-in-up"
               style={{ animationDelay: `${i * 0.08}s` }}
             >
               <div
-                className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl text-2xl"
+                className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-2xl text-2xl"
                 style={{ background: `${f.color}15` }}
               >
                 {f.icon}
               </div>
-              <h3 className="font-display text-base font-semibold text-slate-50">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-500">{f.desc}</p>
+              <h3 className="font-display text-lg font-semibold">{f.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── CTA banner ──────────────────────────────── */}
-      <section className="mx-auto mb-24 max-w-3xl px-6">
-        <div className="relative overflow-hidden rounded-3xl border border-[#22D3EE]/20 bg-gradient-to-br from-[#6366F1]/10 via-[#13131A] to-[#22D3EE]/10 p-12 text-center">
-          <div className="pointer-events-none absolute inset-0 gradient-bg-animated opacity-30" />
-          <h2 className="relative font-display text-3xl font-black text-slate-50">
-            Ready to build the future of polling?
+      <section className="mx-auto mb-24 max-w-4xl px-6">
+        <div className="relative overflow-hidden rounded-[2.5rem] border border-[var(--primary)]/20 bg-[var(--surface)] p-12 text-center shadow-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 to-[var(--primary)]/5 pointer-events-none" />
+          <h2 className="relative font-display text-3xl font-black">
+            Ready to hear what your audience thinks?
           </h2>
-          <p className="relative mt-3 text-slate-400">
-            Join in seconds. No credit card required.
+          <p className="relative mt-4 text-[var(--text-muted)]">
+            Join thousands of creators building better experiences with PollForge.
           </p>
           <Link
             to="/register"
-            className="relative mt-6 inline-block rounded-full bg-[#22D3EE] px-7 py-3 text-sm font-semibold text-[#0A0A0F] hover:opacity-90 transition-opacity"
+            className="relative mt-8 inline-block rounded-full bg-[var(--primary)] px-8 py-4 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
           >
-            Create your first poll →
+            Get Started for Free →
           </Link>
         </div>
       </section>
 
       {/* ── Footer ──────────────────────────────────── */}
-      <footer className="border-t border-[#1E1E2E] bg-[#13131A]">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8">
-          <p className="font-display text-sm font-semibold text-slate-400">
-            PollForge — <span className="gradient-text">Not just polls. Intelligence.</span>
-          </p>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {["MERN", "Socket.io", "Recharts", "Claude AI", "TailwindCSS"].map((t) => (
-              <span key={t} className="rounded bg-[#1E1E2E] px-2 py-1 text-slate-500">
-                {t}
-              </span>
-            ))}
+      <footer className="border-t border-[var(--border)] bg-[var(--surface)]">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-10">
+          <div className="flex items-center gap-3">
+            <img src="/pollforge-logo.png" alt="Logo" className="h-6 w-6 opacity-80" />
+            <p className="font-display text-sm font-semibold text-[var(--text-muted)]">
+              PollForge — <span className="gradient-text">Empowering Collective Decisions.</span>
+            </p>
+          </div>
+          <div className="flex gap-8 text-sm text-[var(--text-muted)]">
+            <Link to="/login" className="hover:text-[var(--primary)] transition-colors">Login</Link>
+            <Link to="/register" className="hover:text-[var(--primary)] transition-colors">Register</Link>
+            <a href="#" className="hover:text-[var(--primary)] transition-colors">Privacy</a>
           </div>
         </div>
       </footer>
