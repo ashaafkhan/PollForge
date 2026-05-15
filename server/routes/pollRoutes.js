@@ -29,6 +29,7 @@ router.get("/:id/analytics", optionalAuthMiddleware, getAnalytics);
 router.get("/:slug", getPollBySlug);
 router.put("/:id", authMiddleware, updatePoll);
 router.delete("/:id", authMiddleware, deletePoll);
+router.patch("/:id/activate", authMiddleware, activatePoll);
 router.patch("/:id/publish", authMiddleware, publishPoll);
 router.get("/:id/qr", getPollQR);
 
