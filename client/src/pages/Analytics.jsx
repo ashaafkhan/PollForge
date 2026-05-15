@@ -28,6 +28,7 @@ export default function Analytics() {
 
   const completion = analytics?.completionRate ?? 0;
   const totalResponses = analytics?.totalResponses ?? 0;
+  const pollHealthScore = analytics?.pollHealthScore ?? 0;
 
   const participationData = useMemo(() => {
     if (!analytics) return [];
@@ -205,7 +206,7 @@ export default function Analytics() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-4">
+        <div className="mt-8 grid gap-4 md:grid-cols-5">
           <div className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-4">
             <p className="text-xs uppercase text-slate-500">Total responses</p>
             <p className="mt-2 text-xl font-semibold text-slate-50">{totalResponses}</p>
@@ -225,6 +226,16 @@ export default function Analytics() {
             <p className="mt-2 text-xl font-semibold text-slate-50">
               {Math.round(analytics.avgCompletionTime || 0)}s
             </p>
+          </div>
+          <div className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-4">
+            <p className="text-xs uppercase text-slate-500">Poll health</p>
+            <p className="mt-2 text-xl font-semibold text-slate-50">{pollHealthScore}</p>
+            <div className="mt-3 h-1 rounded-full bg-[#1E1E2E]">
+              <div
+                className="h-1 rounded-full bg-[#10B981]"
+                style={{ width: `${pollHealthScore}%` }}
+              />
+            </div>
           </div>
         </div>
 

@@ -242,6 +242,9 @@ export async function getAnalytics(req, res, next) {
     let anonymousCount = 0;
     let authenticatedCount = 0;
     const deviceBreakdown = { mobile: 0, desktop: 0 };
+    let completionTimeSum = 0;
+    let completionTimeCount = 0;
+    const ipHashSet = new Set();
 
     responses.forEach((response) => {
       const createdAt = response.createdAt || response.metadata?.submittedAt;
@@ -262,6 +265,15 @@ export async function getAnalytics(req, res, next) {
 
       const device = detectDevice(response.metadata?.userAgent);
       deviceBreakdown[device] += 1;
+
+      if (response.metadata?.completionTime) {
+        completionTimeSum += Number(response.metadata.completionTime || 0);
+        completionTimeCount += 1;
+      }
+
+      if (response.metadata?.ipHash) {
+        ipHashSet.add(response.metadata.ipHash);
+      }
     });
 
     const responsesByDay = Array.from(responsesByDayMap.entries()).map(([date, count]) => ({
@@ -315,6 +327,30 @@ export async function getAnalytics(req, res, next) {
       };
     });
 
+    const avgCompletionTime = poll.meta?.avgCompletionTime ||
+      (completionTimeCount ? completionTimeSum / completionTimeCount : 0);
+
+    const requiredQuestions = poll.questions.filter((question) => question.required);
+    const requiredAnsweredTotal = requiredQuestions.reduce(
+      (sum, question) => sum + (questionStats.find((q) => String(q.questionId) === String(question._id))?.totalAnswered || 0),
+      0
+    );
+    const requiredPossible = requiredQuestions.length * totalResponses;
+    const requiredAnswerRate = requiredPossible ? requiredAnsweredTotal / requiredPossible : 1;
+
+    const daySpread = responsesByDay.length;
+    const dedupeRate = totalResponses ? ipHashSet.size / totalResponses : 1;
+    const authRatio = totalResponses ? authenticatedCount / totalResponses : 0;
+
+    let pollHealthScore = 0;
+    if (completionRate > 60) pollHealthScore += 20;
+    if (avgCompletionTime >= 30 && avgCompletionTime <= 300) pollHealthScore += 15;
+    if (requiredAnswerRate >= 0.9) pollHealthScore += 15;
+    if (authRatio >= 0.5) pollHealthScore += 10;
+    if (daySpread >= 2) pollHealthScore += 10;
+    if (dedupeRate >= 0.9) pollHealthScore += 10;
+    pollHealthScore = Math.min(100, pollHealthScore);
+
     const recentResponses = responses.slice(-5).reverse().map((response) => ({
       id: response._id,
       submittedAt: response.metadata?.submittedAt || response.createdAt,
@@ -326,7 +362,7 @@ export async function getAnalytics(req, res, next) {
       totalResponses,
       viewCount,
       completionRate,
-      avgCompletionTime: poll.meta?.avgCompletionTime || 0,
+      avgCompletionTime,
       firstResponseAt,
       lastResponseAt,
       responsesByDay,
@@ -334,7 +370,8 @@ export async function getAnalytics(req, res, next) {
       anonymousCount,
       authenticatedCount,
       deviceBreakdown,
-      recentResponses
+      recentResponses,
+      pollHealthScore
     });
   } catch (error) {
     return next(error);
