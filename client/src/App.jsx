@@ -5,6 +5,7 @@ import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import PollBuilder from "./pages/PollBuilder.jsx";
 import PollEdit from "./pages/PollEdit.jsx";
+import PollPublic from "./pages/PollPublic.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import PublicOnlyRoute from "./components/PublicOnlyRoute.jsx";
 
@@ -52,6 +53,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route path="/p/:slug" element={<PollPublic />} />
     </Routes>
   );
 }

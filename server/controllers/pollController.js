@@ -112,8 +112,23 @@ export async function getPollBySlug(req, res, next) {
       return res.status(404).json({ message: "Poll not found" });
     }
 
+    if (poll.expiresAt && new Date(poll.expiresAt).getTime() <= Date.now()) {
+      poll.status = "expired";
+      await poll.save();
+      return res.status(410).json({ message: "Poll expired" });
+    }
+
     if (poll.status === "expired") {
       return res.status(410).json({ message: "Poll expired" });
+    }
+
+    if (poll.status !== "active" && poll.status !== "published") {
+      return res.status(409).json({ message: "Poll is not active" });
+    }
+
+    const maxResponses = poll.settings?.maxResponses || 0;
+    if (maxResponses && poll.meta?.totalResponses >= maxResponses) {
+      return res.status(423).json({ message: "Response limit reached" });
     }
 
     return res.json(poll);

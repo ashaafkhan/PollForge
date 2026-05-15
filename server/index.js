@@ -11,6 +11,7 @@ import { registerPollSocket } from "./sockets/pollSocket.js";
 import { connectDb } from "./services/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import pollRoutes from "./routes/pollRoutes.js";
+import responseRoutes from "./routes/responseRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 dotenv.config();
@@ -24,6 +25,7 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+app.set("io", io);
 
 app.use(helmet());
 app.use(morgan("dev"));
@@ -48,6 +50,7 @@ app.get("/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/polls", pollRoutes);
+app.use("/api/responses", responseRoutes);
 
 app.use(errorHandler);
 
