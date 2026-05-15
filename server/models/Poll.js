@@ -68,7 +68,7 @@ const pollSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-pollSchema.index({ slug: 1 });
+
 pollSchema.index({ creator: 1, createdAt: -1 });
 pollSchema.index({ creator: 1, status: 1 });
 
