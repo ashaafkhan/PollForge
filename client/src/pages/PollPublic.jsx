@@ -58,6 +58,20 @@ export default function PollPublic() {
     return String(answers[showIf.questionId]) === String(showIf.selectedOptionId);
   };
 
+  useEffect(() => {
+    if (!poll) return;
+    const visibleIds = new Set(
+      poll.questions.filter((question) => isQuestionVisible(question)).map((q) => q._id)
+    );
+    setAnswers((prev) => {
+      const next = Object.entries(prev).filter(([key]) => visibleIds.has(key));
+      if (next.length === Object.keys(prev).length) {
+        return prev;
+      }
+      return Object.fromEntries(next);
+    });
+  }, [answers, poll]);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!poll) return;
