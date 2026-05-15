@@ -141,6 +141,11 @@ export async function submitResponse(req, res, next) {
       poll.meta.avgCompletionTime = (prevAvg * prevTotal + completionTime) / nextTotal;
     }
 
+    const viewCount = poll.meta?.viewCount || 0;
+    poll.meta.completionRate = viewCount
+      ? Math.round((nextTotal / viewCount) * 1000) / 10
+      : 0;
+
     await poll.save();
 
     const io = req.app.get("io");

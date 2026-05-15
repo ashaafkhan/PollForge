@@ -127,6 +127,8 @@ export async function getPollBySlug(req, res, next) {
       return res.status(409).json({ message: "Poll is not active" });
     }
 
+    await Poll.updateOne({ _id: poll._id }, { $inc: { "meta.viewCount": 1 } });
+
     const maxResponses = poll.settings?.maxResponses || 0;
     if (maxResponses && poll.meta?.totalResponses >= maxResponses) {
       return res.status(423).json({ message: "Response limit reached" });
