@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import api from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import ResultsDisplay from "../components/ResultsDisplay.jsx";
@@ -13,6 +14,7 @@ export default function PollPublic() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [hasResponded, setHasResponded] = useState(false);
+  const [pollExpired, setPollExpired] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [startedAt, setStartedAt] = useState(null);
@@ -32,20 +34,19 @@ export default function PollPublic() {
         if (!active) return;
         setHasResponded(Boolean(check.data.hasResponded));
       } catch (err) {
-        if (active) {
+        if (!active) return;
+        if (err.response?.status === 410) {
+          setPollExpired(true);
+        } else {
           setError(err.response?.data?.message || "Failed to load poll");
         }
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     };
 
     fetchPoll();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [slug]);
 
   const handleSelect = (questionId, optionId) => {
@@ -105,7 +106,9 @@ export default function PollPublic() {
         }
       });
       setSuccess(true);
+      toast.success("Response submitted! Thanks for participating.");
     } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to submit response");
       setError(err.response?.data?.message || "Failed to submit response");
     } finally {
       setSubmitting(false);
@@ -115,7 +118,27 @@ export default function PollPublic() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
-        <div className="mx-auto max-w-3xl px-6 py-10 text-slate-400">Loading poll...</div>
+        <div className="mx-auto max-w-3xl space-y-4 px-6 py-10">
+          <div className="animate-shimmer h-8 w-64 rounded" />
+          <div className="animate-shimmer h-4 w-48 rounded" />
+          <div className="animate-shimmer mt-8 h-40 w-full rounded-2xl" />
+          <div className="animate-shimmer h-40 w-full rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (pollExpired) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
+        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+          <span className="text-5xl">⏳</span>
+          <h1 className="mt-6 font-display text-3xl font-bold text-slate-50">This poll has closed</h1>
+          <p className="mt-3 text-slate-500">The polling period has ended. No more responses are being accepted.</p>
+          <Link to="/" className="mt-6 inline-block rounded-full border border-[#22D3EE] px-5 py-2 text-sm text-[#22D3EE] hover:bg-[#22D3EE]/10 transition-colors">
+            Back to Home
+          </Link>
+        </div>
       </div>
     );
   }

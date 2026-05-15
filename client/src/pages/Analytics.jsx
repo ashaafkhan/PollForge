@@ -193,7 +193,26 @@ export default function Analytics() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0A0A0F] text-slate-100">
-        <div className="mx-auto max-w-5xl px-6 py-10 text-slate-400">Loading analytics...</div>
+        <div className="mx-auto max-w-6xl px-6 py-10">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <div className="animate-shimmer h-7 w-48 rounded" />
+              <div className="animate-shimmer h-4 w-64 rounded" />
+            </div>
+          </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-5">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="rounded-2xl border border-[#1E1E2E] bg-[#13131A] p-4">
+                <div className="animate-shimmer h-3 w-20 rounded" />
+                <div className="animate-shimmer mt-3 h-7 w-12 rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 grid gap-6 lg:grid-cols-3">
+            <div className="animate-shimmer h-72 rounded-2xl border border-[#1E1E2E] lg:col-span-2" />
+            <div className="animate-shimmer h-72 rounded-2xl border border-[#1E1E2E]" />
+          </div>
+        </div>
       </div>
     );
   }

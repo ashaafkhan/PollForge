@@ -27,5 +27,6 @@ const responseSchema = new mongoose.Schema(
 
 responseSchema.index({ poll: 1, respondent: 1 });
 responseSchema.index({ poll: 1, "metadata.ipHash": 1 });
+responseSchema.index({ poll: 1, createdAt: -1 });
 
 export default mongoose.model("Response", responseSchema);

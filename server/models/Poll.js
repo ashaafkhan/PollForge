@@ -71,5 +71,6 @@ const pollSchema = new mongoose.Schema(
 
 pollSchema.index({ slug: 1 });
 pollSchema.index({ creator: 1, createdAt: -1 });
+pollSchema.index({ creator: 1, status: 1 });
 
 export default mongoose.model("Poll", pollSchema);

@@ -3,6 +3,7 @@ import Poll from "../models/Poll.js";
 import Response from "../models/Response.js";
 import Notification from "../models/Notification.js";
 import User from "../models/User.js";
+import { emitDebounced } from "../sockets/pollSocket.js";
 
 function hashIdentity(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
@@ -210,7 +211,7 @@ export async function submitResponse(req, res, next) {
 
     const io = req.app.get("io");
     if (io) {
-      io.to(`poll:${poll._id}`).emit("response:new", {
+      emitDebounced(io, poll._id, {
         totalResponses: poll.meta.totalResponses,
         answers,
         isAnonymous: responseDoc.isAnonymous,
